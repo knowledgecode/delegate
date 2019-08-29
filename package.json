@@ -1,0 +1,27 @@
+{
+  "name": "@knowledgecode/delegate",
+  "version": "0.1.0",
+  "description": "An event delegation library for the browser",
+  "main": "delegate.js",
+  "scripts": {
+    "minify": "terser -c -m --ecma 5 -o dist/delegate.min.js --comments some delegate.js && terser -c -m --module -o dist/delegate.es.min.js --comments some delegate.es.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/knowledgecode/delegate.git"
+  },
+  "keywords": [
+    "event",
+    "delegation"
+  ],
+  "author": "KNOWLEDGECODE",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/knowledgecode/delegate/issues"
+  },
+  "homepage": "https://github.com/knowledgecode/delegate#readme",
+  "devDependencies": {
+    "terser": "^4.2.1"
+  }
+}
