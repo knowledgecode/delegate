@@ -31,32 +31,29 @@ class Delegate {
         let subscribers = this._subscribers[evt.type] || [];
         let target = evt.target;
 
-        if (target instanceof Element) {
-            while (target.parentNode) {
-                const evt2 = new DelegateEvent(evt, target);
-                const remains = [];
+        while (target.parentNode) {
+            const evt2 = new DelegateEvent(evt, target);
+            const remains = [];
 
-                for (const sub of subscribers) {
-                    if (sub.selector) {
-                        if (target.matches(sub.selector)) {
-                            sub.handler.call(target, evt2);
-                        } else {
-                            remains[remains.length] = sub;
-                        }
+            for (const sub of subscribers) {
+                if (sub.selector) {
+                    if (target.matches(sub.selector)) {
+                        sub.handler.call(target, evt2);
+                    } else {
+                        remains[remains.length] = sub;
                     }
                 }
-                if (!remains.length || !evt2.bubbles) {
-                    break;
-                }
-                subscribers = remains;
-                target = target.parentNode;
             }
-        } else if (evt.eventPhase === 2) {
-            target = evt.currentTarget;
-            for (const sub of subscribers) {
-                if (!sub.selector) {
-                    sub.handler.call(target, new DelegateEvent(evt, target));
-                }
+            if (!remains.length || !evt2.bubbles) {
+                return;
+            }
+            subscribers = remains;
+            target = target.parentNode;
+        }
+        target = evt.currentTarget;
+        for (const sub of subscribers) {
+            if (!sub.selector) {
+                sub.handler.call(target, new DelegateEvent(evt, target));
             }
         }
     }
@@ -75,7 +72,7 @@ class Delegate {
         }
         if (!~Object.keys(this._eventCache).indexOf(eventName)) {
             const listener2 = this.listener.bind(this);
-            this._baseEventTarget.addEventListener(eventName, listener2, { capture: true });
+            this._baseEventTarget.addEventListener(eventName, listener2, { capture: true, passive: false });
             this._eventCache[eventName] = listener2;
         }
         this._subscribers[eventName] = this._subscribers[eventName] || [];
@@ -128,9 +125,14 @@ class Delegate {
     one (eventName, selector, handler) {
         const _this = this;
         const handler2 = function (evt) {
-            _this.off(eventName, selector, handler2);
+            _this.off(eventName, selector || handler2, handler2);
             handler.call(this, evt);
         };
+        if (typeof selector === 'function') {
+            handler = selector;
+            selector = null;
+            return this.on(eventName, handler2);
+        }
         return this.on(eventName, selector, handler2);
     }
 

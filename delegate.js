@@ -47,36 +47,33 @@
         var target = evt.target;
         var evt2, remains;
 
-        if (target instanceof Element) {
-            while (target.parentNode) {
-                evt2 = new DelegateEvent(evt, target);
-                remains = [];
+        while (target.parentNode) {
+            evt2 = new DelegateEvent(evt, target);
+            remains = [];
 
-                forEach(subscribers, (function (_t, _e, _r) {
-                    return function (sub) {
-                        if (sub.selector) {
-                            if (matches(_t, sub.selector)) {
-                                sub.handler.call(_t, _e);
-                            } else {
-                                _r[_r.length] = sub;
-                            }
+            forEach(subscribers, (function (_t, _e, _r) {
+                return function (sub) {
+                    if (sub.selector) {
+                        if (matches(_t, sub.selector)) {
+                            sub.handler.call(_t, _e);
+                        } else {
+                            _r[_r.length] = sub;
                         }
-                    };
-                }(target, evt2, remains)));
-                if (!remains.length || !evt2.bubbles) {
-                    break;
-                }
-                subscribers = remains;
-                target = target.parentNode;
+                    }
+                };
+            }(target, evt2, remains)));
+            if (!remains.length || !evt2.bubbles) {
+                return;
             }
-        } else if (evt.eventPhase === 2) {
-            target = evt.currentTarget;
-            forEach(subscribers, function (sub) {
-                if (!sub.selector) {
-                    sub.handler.call(target, new DelegateEvent(evt, target));
-                }
-            });
+            subscribers = remains;
+            target = target.parentNode;
         }
+        target = evt.currentTarget;
+        forEach(subscribers, function (sub) {
+            if (!sub.selector) {
+                sub.handler.call(target, new DelegateEvent(evt, target));
+            }
+        });
     };
 
     Delegate.prototype.on = function (eventName, selector, handler) {
@@ -88,7 +85,7 @@
         }
         if (!~Object.keys(this._eventCache).indexOf(eventName)) {
             listener2 = this.listener.bind(this);
-            this._baseEventTarget.addEventListener(eventName, listener2, true);
+            this._baseEventTarget.addEventListener(eventName, listener2, { capture: true, passive: false });
             this._eventCache[eventName] = listener2;
         }
         this._subscribers[eventName] = this._subscribers[eventName] || [];
@@ -127,9 +124,15 @@
     Delegate.prototype.one = function (eventName, selector, handler) {
         var _this = this;
         var handler2 = function (evt) {
-            _this.off(eventName, selector, handler2);
+            _this.off(eventName, selector || handler2, handler2);
             handler.call(this, evt);
         };
+
+        if (typeof selector === 'function') {
+            handler = selector;
+            selector = null;
+            return this.on(eventName, handler2);
+        }
         return this.on(eventName, selector, handler2);
     };
 
