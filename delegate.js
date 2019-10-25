@@ -140,7 +140,7 @@
         this.off();
         forEach(Object.keys(this._eventCache), function (key) {
             this._baseEventTarget.removeEventListener(key, this._eventCache[key], true);
-        });
+        }.bind(this));
         this._eventCache = {};
         for (var i = 0, len = delegateCache.length; i < len; i++) {
             if (this._baseEventTarget === delegateCache[i].baseEventTarget) {
