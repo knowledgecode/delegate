@@ -53,12 +53,10 @@
 
             forEach(subscribers, (function (_t, _e, _r) {
                 return function (sub) {
-                    if (sub.selector) {
-                        if (matches(_t, sub.selector)) {
-                            sub.handler.call(_t, _e);
-                        } else {
-                            _r[_r.length] = sub;
-                        }
+                    if (sub.selector && matches(_t, sub.selector)) {
+                        sub.handler.call(_t, _e);
+                    } else {
+                        _r[_r.length] = sub;
                     }
                 };
             }(target, evt2, remains)));

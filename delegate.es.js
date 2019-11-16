@@ -36,12 +36,10 @@ class Delegate {
             const remains = [];
 
             for (const sub of subscribers) {
-                if (sub.selector) {
-                    if (target.matches(sub.selector)) {
-                        sub.handler.call(target, evt2);
-                    } else {
-                        remains[remains.length] = sub;
-                    }
+                if (sub.selector && target.matches(sub.selector)) {
+                    sub.handler.call(target, evt2);
+                } else {
+                    remains[remains.length] = sub;
                 }
             }
             if (!remains.length || !evt2.bubbles) {
