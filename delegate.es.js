@@ -4,7 +4,8 @@
 class DelegateEvent {
     constructor (evt, target) {
         this.originalEvent = evt;
-        this.bubbles = evt.bubbles;
+        this.stop = !evt.bubbles;
+        this.abort = false;
         this.currentTarget = target;
     }
 
@@ -13,7 +14,11 @@ class DelegateEvent {
     }
 
     stopPropagation () {
-        this.bubbles = false;
+        this.stop = true;
+    }
+
+    stopImmediatePropagation () {
+        this.abort = this.stop = true;
     }
 }
 
@@ -38,20 +43,29 @@ class Delegate {
             for (const sub of subscribers) {
                 if (sub.selector && target.matches(sub.selector)) {
                     sub.handler.call(target, evt2);
+                    if (evt2.abort) {
+                        break;
+                    }
                 } else {
                     remains[remains.length] = sub;
                 }
             }
-            if (!remains.length || !evt2.bubbles) {
+            if (!remains.length || evt2.stop) {
                 return;
             }
             subscribers = remains;
             target = target.parentNode;
         }
         target = evt.currentTarget;
+
+        const evt2 = new DelegateEvent(evt, target);
+
         for (const sub of subscribers) {
             if (!sub.selector) {
-                sub.handler.call(target, new DelegateEvent(evt, target));
+                sub.handler.call(target, evt2);
+                if (evt2.abort) {
+                    break;
+                }
             }
         }
     }
@@ -59,9 +73,9 @@ class Delegate {
     /**
      * on
      * @param {string} eventName - An event name
-     * @param {string|Function} selector - A selector which you want to match | An event listener.
+     * @param {string|Function} selector - A selector to match | An event listener
      * @param {Function} [handler] - An event listener
-     * @returns {Object} etageled
+     * @returns {Object} delegator
      */
     on (eventName, selector, handler) {
         if (typeof selector === 'function') {
@@ -70,7 +84,7 @@ class Delegate {
         }
         if (!~Object.keys(this._eventCache).indexOf(eventName)) {
             const listener2 = this.listener.bind(this);
-            this._baseEventTarget.addEventListener(eventName, listener2, { capture: true, passive: false });
+            this._baseEventTarget.addEventListener(eventName, listener2, true);
             this._eventCache[eventName] = listener2;
         }
         this._subscribers[eventName] = this._subscribers[eventName] || [];
@@ -81,9 +95,9 @@ class Delegate {
     /**
      * off
      * @param {string} [eventName] - An event name. If omit it, all the listeners will be removed.
-     * @param {string|Function} [selector] - A selector which you want to match | An event listener.
-     * @param {Function} [handler] - An event listener. If omit it, all the listeners that are related with the `eventName` will be removed.
-     * @returns {Object} etageled
+     * @param {string|Function} [selector] - A selector to match | An event listener
+     * @param {Function} [handler] - An event listener. If omit it, all the listeners that are related to the `eventName` will be removed.
+     * @returns {Object} delegator
      */
     off (eventName, selector, handler) {
         if (typeof selector === 'function') {
@@ -91,16 +105,16 @@ class Delegate {
             selector = null;
         }
         if (!eventName) {
-            // Clear all listener.
+            // Delete all the listeners.
             this._subscribers = {};
         } else if (!selector && !handler) {
-            // Clear all listener about the eventName.
+            // Delete all the listeners related to the eventName.
             delete this._subscribers[eventName];
         } else {
             const remains = [];
 
             for (const sub of this._subscribers[eventName]) {
-                if (sub.selector !== selector || sub.handler !== handler) {
+                if (sub.selector !== selector || handler && sub.handler !== handler) {
                     remains[remains.length] = sub;
                 }
             }
@@ -116,9 +130,9 @@ class Delegate {
     /**
      * one
      * @param {string} eventName - An event name
-     * @param {string} selector - A selector which you want to match.
-     * @param {Function} handler - An event listener, which is fired only once.
-     * @returns {Object} etageled
+     * @param {string|Function} selector - A selector to match | An event listener, which is fired only once.
+     * @param {Function} [handler] - An event listener, which is fired only once.
+     * @returns {Object} delegator
      */
     one (eventName, selector, handler) {
         const _this = this;
@@ -136,12 +150,12 @@ class Delegate {
 
     /**
      * clear
-     * @returns {Object} etageled
+     * @returns {void}
      */
     clear () {
         this.off();
         for (const key of Object.keys(this._eventCache)) {
-            this._baseEventTarget.removeEventListener(key, this._eventCache[key], { capture: true });
+            this._baseEventTarget.removeEventListener(key, this._eventCache[key], true);
         }
         this._eventCache = {};
         for (let i = 0, len = delegateCache.length; i < len; i++) {
@@ -150,7 +164,6 @@ class Delegate {
                 break;
             }
         }
-        return this;
     }
 }
 
@@ -160,10 +173,10 @@ export default baseEventTarget => {
     }
     for (const cache of delegateCache) {
         if (baseEventTarget === cache.baseEventTarget) {
-            return cache.object;
+            return cache.delegator;
         }
     }
-    const obj = new Delegate(baseEventTarget);
-    delegateCache.push({ baseEventTarget, object: obj });
-    return obj;
+    const delegator = new Delegate(baseEventTarget);
+    delegateCache.push({ baseEventTarget, delegator });
+    return delegator;
 };

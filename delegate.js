@@ -15,7 +15,8 @@
 
     var DelegateEvent = function (evt, target) {
         this.originalEvent = evt;
-        this.bubbles = evt.bubbles;
+        this.stop = !evt.bubbles;
+        this.abort = false;
         this.currentTarget = target;
     };
 
@@ -24,7 +25,11 @@
     };
 
     DelegateEvent.prototype.stopPropagation = function () {
-        this.bubbles = false;
+        this.stop = true;
+    };
+
+    DelegateEvent.prototype.stopImmediatePropagation = function () {
+        this.abort = this.stop = true;
     };
 
     var delegateCache = [];
@@ -45,35 +50,51 @@
     Delegate.prototype.listener = function (evt) {
         var subscribers = this._subscribers[evt.type] || [];
         var target = evt.target;
-        var evt2, remains;
+        var evt2, remains, i, len, sub;
 
         while (target.parentNode) {
             evt2 = new DelegateEvent(evt, target);
             remains = [];
 
-            forEach(subscribers, (function (_t, _e, _r) {
-                return function (sub) {
-                    if (sub.selector && matches(_t, sub.selector)) {
-                        sub.handler.call(_t, _e);
-                    } else {
-                        _r[_r.length] = sub;
+            for (i = 0, len = subscribers.length; i < len; i++) {
+                sub = subscribers[i];
+                if (sub.selector && matches(target, sub.selector)) {
+                    sub.handler.call(target, evt2);
+                    if (evt2.abort) {
+                        break;
                     }
-                };
-            }(target, evt2, remains)));
-            if (!remains.length || !evt2.bubbles) {
+                } else {
+                    remains[remains.length] = sub;
+                }
+            }
+            if (!remains.length || evt2.stop) {
                 return;
             }
             subscribers = remains;
             target = target.parentNode;
         }
         target = evt.currentTarget;
-        forEach(subscribers, function (sub) {
+
+        evt2 = new DelegateEvent(evt, target);
+
+        for (i = 0, len = subscribers.length; i < len; i++) {
+            sub = subscribers[i];
             if (!sub.selector) {
-                sub.handler.call(target, new DelegateEvent(evt, target));
+                sub.handler.call(target, evt2);
+                if (evt2.abort) {
+                    break;
+                }
             }
-        });
+        }
     };
 
+    /**
+     * on
+     * @param {string} eventName - An event name
+     * @param {string|Function} selector - A selector to match | An event listener
+     * @param {Function} [handler] - An event listener
+     * @returns {Object} delegator
+     */
     Delegate.prototype.on = function (eventName, selector, handler) {
         var listener2;
 
@@ -83,7 +104,7 @@
         }
         if (!~Object.keys(this._eventCache).indexOf(eventName)) {
             listener2 = this.listener.bind(this);
-            this._baseEventTarget.addEventListener(eventName, listener2, { capture: true, passive: false });
+            this._baseEventTarget.addEventListener(eventName, listener2, true);
             this._eventCache[eventName] = listener2;
         }
         this._subscribers[eventName] = this._subscribers[eventName] || [];
@@ -91,6 +112,13 @@
         return this;
     };
 
+    /**
+     * off
+     * @param {string} [eventName] - An event name. If omit it, all the listeners will be removed.
+     * @param {string|Function} [selector] - A selector to match | An event listener
+     * @param {Function} [handler] - An event listener. If omit it, all the listeners that are related to the `eventName` will be removed.
+     * @returns {Object} delegator
+     */
     Delegate.prototype.off = function (eventName, selector, handler) {
         var remains = [];
 
@@ -99,10 +127,10 @@
             selector = null;
         }
         if (!eventName) {
-            // Clear all listener.
+            // Delete all the listeners.
             this._subscribers = {};
         } else if (!selector && !handler) {
-            // Clear all listener about the eventName.
+            // Delete all the listeners related to the eventName.
             delete this._subscribers[eventName];
         } else {
             forEach(this._subscribers[eventName], function (sub) {
@@ -119,6 +147,13 @@
         return this;
     };
 
+    /**
+     * one
+     * @param {string} eventName - An event name
+     * @param {string|Function} selector - A selector to match | An event listener, which is fired only once.
+     * @param {Function} [handler] - An event listener, which is fired only once.
+     * @returns {Object} delegator
+     */
     Delegate.prototype.one = function (eventName, selector, handler) {
         var _this = this;
         var handler2 = function (evt) {
@@ -134,6 +169,10 @@
         return this.on(eventName, selector, handler2);
     };
 
+    /**
+     * clear
+     * @returns {void}
+     */
     Delegate.prototype.clear = function () {
         this.off();
         forEach(Object.keys(this._eventCache), function (key) {
@@ -146,7 +185,6 @@
                 break;
             }
         }
-        return this;
     };
 
     global.delegate = function (baseEventTarget) {
@@ -155,12 +193,12 @@
         }
         for (var i = 0, len = delegateCache.length; i < len; i++) {
             if (baseEventTarget === delegateCache[i].baseEventTarget) {
-                return delegateCache[i].object;
+                return delegateCache[i].delegator;
             }
         }
-        var obj = new Delegate(baseEventTarget);
-        delegateCache.push({ baseEventTarget: baseEventTarget, object: obj });
-        return obj;
+        var delegator = new Delegate(baseEventTarget);
+        delegateCache.push({ baseEventTarget: baseEventTarget, delegator: delegator });
+        return delegator;
     };
 
 }(this));
