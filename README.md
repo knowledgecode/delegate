@@ -1,6 +1,6 @@
 # Delegate
 
-This is an event delegation library for the browser. I/F are similar to jQuery.
+This is an event delegation library for the browser. Interfaces are similar to jQuery.
 
 ## Installation
 
@@ -37,7 +37,7 @@ traditional:
 
 ### delegate
 
-Creates a delegate instance.
+Create a delegate instance.
 
 * {**Object**} baseEventTarget - A base element that receives events
 
@@ -49,7 +49,7 @@ const container = delegate(document.querySelector('.container'));
 
 ### on
 
-Registers an event listener.
+Register an event listener.
 
 * {**string**} eventName - An event name
 * {**string|Function**} selector - A selector to match | An event listener
@@ -68,7 +68,7 @@ delegate(document).on('DOMContentLoaded', () => {
 
 ### one
 
-Registers an event listener that is fired only once.
+Register an event listener that is fired only once.
 
 * {**string**} eventName - An event name
 * {**string|Function**} selector - A selector to match | An event listener, which is fired only once.
@@ -82,7 +82,7 @@ delegate(document).one('click', '#button', () => {
 
 ### off
 
-Removes registered event listeners.
+Remove registered event listeners.
 
 * {**string**} [eventName] - An event name. If omit it, all the listeners will be removed.
 * {**string|Function**} [selector] - A selector to match | An event listener
@@ -108,7 +108,7 @@ delegate(document).off();
 
 ### clear
 
-Removes all the listeners and cleans up. Although this method is similar to the `off()`, in this case the instance is no longer able to reuse.
+Remove all the listeners and clean up. Although this method is similar to `off()`, in this case the instance is no longer able to reuse.
 
 ```javascript
 delegate(document).clear();
