@@ -1,6 +1,6 @@
 {
   "name": "@knowledgecode/delegate",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "An event delegation library for the browser",
   "main": "delegate.js",
   "scripts": {
@@ -22,6 +22,6 @@
   },
   "homepage": "https://github.com/knowledgecode/delegate#readme",
   "devDependencies": {
-    "terser": "^4.3.9"
+    "terser": "^4.6.3"
   }
 }
