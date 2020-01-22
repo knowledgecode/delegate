@@ -41,7 +41,8 @@ class Delegate {
             const remains = [];
 
             for (const sub of subscribers) {
-                if (sub.selector && target.matches(sub.selector)) {
+                if (target === evt.currentTarget
+                    || sub.selector && target.matches(sub.selector)) {
                     sub.handler.call(target, evt2);
                     if (evt2.abort) {
                         break;
