@@ -58,8 +58,8 @@
 
             for (i = 0, len = subscribers.length; i < len; i++) {
                 sub = subscribers[i];
-                if (target === evt.currentTarget
-                    || sub.selector && matches(target, sub.selector)) {
+                if (sub.selector && matches(target, sub.selector)
+                    || !sub.selector && target === evt.currentTarget) {
                     sub.handler.call(target, evt2);
                     if (evt2.abort) {
                         break;
