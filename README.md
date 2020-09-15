@@ -1,6 +1,6 @@
 # Delegate
 
-This is an event delegation library for the browser. Interfaces are similar to jQuery.
+This is an event delegation library for the browser. As the interfaces it has are similar to jQuery's, you will be able to learn them easily.
 
 ## Installation
 
@@ -14,20 +14,33 @@ npm install knowledgecode@delegate --save
 
 ES Modules:
 
-```javascript
-import delegate from './dist/delegate.es.min.js';
+```html
+<script type="module">
+  import delegate from './esm/delegate.es.min.js';
 
-delegate(document).on('click', '#button', () => {
-  alert('Clicked!');
-});
+  delegate(document).on('click', '#button', () => {
+    alert('Clicked!');
+  });
+</script>
 ```
 
-traditional:
+ES2015:
 
-```javascript
-<script src="./dist/delegate.min.js"></script>
+```html
+<script src="./delegate.min.js"></script>
 <script>
-  delegate(document).on('click', '#button', function {
+  delegate(document).on('click', '#button', () => {
+    alert('Clicked!');
+  });
+</script>
+```
+
+ES5:
+
+```html
+<script src="./es5/delegate.min.js"></script>
+<script>
+  delegate(document).on('click', '#button', function () {
     alert('Clicked!');
   });
 </script>
@@ -56,13 +69,15 @@ Register an event listener.
 * {**Function**} [handler] - An event listener
 
 ```javascript
-delegate(document).on('click', '#button', () => {
+const body = delegate(document.body);
+
+body.on('click', '#button', () => {
   alert('Clicked!');
 });
 
 // If a base element itself should process an event:
-delegate(document).on('DOMContentLoaded', () => {
-  alert('Content Loaded!');
+delegate(window).on('resize', () => {
+  alert('Window Resized!');
 });
 ```
 
@@ -75,7 +90,9 @@ Register an event listener that is fired only once.
 * {**Function**} [handler] - An event listener, which is fired only once.
 
 ```javascript
-delegate(document).one('click', '#button', () => {
+const container = delegate(document.querySelector('.container'));
+
+container.one('click', '#button', () => {
   alert('Clicked!');
 });
 ```
@@ -86,7 +103,7 @@ Remove registered event listeners.
 
 * {**string**} [eventName] - An event name. If omit it, all the listeners will be removed.
 * {**string|Function**} [selector] - A selector to match | An event listener
-* {**Function**} [handler] - An event listener. If omit it, all the listeners that are related to the `eventName` will be removed.
+* {**Function**} [handler] - An event listener. If omit it, all the listeners that are corresponded to the `eventName` will be removed.
 
 ```javascript
 const handler = () => alert('Clicked!');
@@ -96,10 +113,10 @@ delegate(document).on('click', '#button', handler);
 // If remove the specific listener:
 delegate(document).off('click', '#button', handler);
 
-// If remove all the listeners related to the selector:
+// If remove all the listeners corresponded to the selector:
 delegate(document).off('click', '#button');
 
-// If remove all the listeners related to the eventName:
+// If remove all the listeners corresponded to the eventName:
 delegate(document).off('click');
 
 // If the all the listeners:
