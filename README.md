@@ -76,8 +76,8 @@ body.on('click', '#button', () => {
 });
 
 // If a base element itself should process an event:
-delegate(window).on('resize', () => {
-  alert('Window Resized!');
+body.on('click', () => {
+  alert('Clicked');
 });
 ```
 
