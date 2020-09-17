@@ -24,18 +24,14 @@ var delegate = function () {
 
   var delegateCache = [];
 
-  var findIndex = function findIndex(array, cb) {
+  var find = function find(array, cb) {
     for (var i = 0, len = array.length; i < len; i++) {
       if (cb(array[i])) {
-        return i;
+        return array[i];
       }
     }
 
-    return -1;
-  };
-
-  var find = function find(array, cb) {
-    return array[findIndex(array, cb)];
+    return undefined;
   };
 
   var split = function split(array, cb) {
@@ -94,9 +90,8 @@ var delegate = function () {
       _classCallCheck(this, Delegate);
 
       this._baseEventTarget = baseEventTarget;
-      this._handlerCache = {};
+      this._eventCache = {};
       this._subscribers = {};
-      this._eventCache = [];
       return this;
     }
 
@@ -104,34 +99,52 @@ var delegate = function () {
       key: "listener",
       value: function listener(evt) {
         var subscribers = this._subscribers[evt.type] || [];
-        var target = evt.target || {};
+        var target = evt.target;
 
-        while (target.parentNode) {
-          var evt2 = new DelegateEvent(evt, target);
+        while ((target || {}).parentNode) {
+          var _evt = new DelegateEvent(evt, target);
 
           var _split = split(subscribers, function (t) {
             return function (s) {
-              return t.matches(s.selector);
+              return t.matches(s.selector) || !s.selector && t === evt.currentTarget;
             };
           }(target)),
               _split2 = _slicedToArray(_split, 2),
-              match = _split2[0],
+              _match = _split2[0],
               unmatch = _split2[1];
 
-          for (var i = 0, len = match.length; i < len; i++) {
-            match[i].handler.call(target, evt2);
+          for (var i = 0, len = _match.length; i < len; i++) {
+            _match[i].handler.call(target, _evt);
 
-            if (evt2.abort) {
-              break;
+            if (_evt.abort) {
+              return;
             }
           }
 
-          if (!unmatch.length || evt2.stop) {
-            break;
+          subscribers = unmatch;
+
+          if (!unmatch.length || _evt.stop) {
+            return;
           }
 
-          subscribers = unmatch;
-          target = target.parentNode || {};
+          target = target.parentNode;
+        }
+
+        target = evt.currentTarget;
+        var evt2 = new DelegateEvent(evt, target);
+
+        var _split3 = split(subscribers, function (s) {
+          return !s.selector;
+        }),
+            _split4 = _slicedToArray(_split3, 1),
+            match = _split4[0];
+
+        for (var _i2 = 0, _len = match.length; _i2 < _len; _i2++) {
+          match[_i2].handler.call(target, evt2);
+
+          if (evt2.abort) {
+            return;
+          }
         }
       }
       /**
@@ -150,33 +163,22 @@ var delegate = function () {
           selector = null;
         }
 
-        if (selector) {
-          var subscribers = this._subscribers[eventName] = this._subscribers[eventName] || [];
+        var subscribers = this._subscribers[eventName] = this._subscribers[eventName] || [];
 
-          if (!find(subscribers, function (s) {
-            return s.selector === selector && s.handler === handler;
-          })) {
-            subscribers.push({
-              selector: selector,
-              handler: handler
-            });
-
-            if (!this._handlerCache[eventName]) {
-              var listener2 = this.listener.bind(this);
-              this._handlerCache[eventName] = listener2;
-
-              this._baseEventTarget.addEventListener(eventName, listener2, true);
-            }
-          }
-        } else if (!find(this._eventCache, function (cache) {
-          return cache.eventName === eventName && cache.handler === handler;
+        if (!find(subscribers, function (s) {
+          return s.selector === selector && s.handler === handler;
         })) {
-          this._eventCache.push({
-            eventName: eventName,
+          subscribers.push({
+            selector: selector,
             handler: handler
           });
 
-          this._baseEventTarget.addEventListener(eventName, handler, true);
+          if (!this._eventCache[eventName]) {
+            var listener2 = this.listener.bind(this);
+            this._eventCache[eventName] = listener2;
+
+            this._baseEventTarget.addEventListener(eventName, listener2, true);
+          }
         }
 
         return this;
@@ -185,15 +187,13 @@ var delegate = function () {
        * off
        * @param {string} [eventName] - An event name. If omit it, all the listeners will be removed.
        * @param {string|Function} [selector] - A selector to match | An event listener
-       * @param {Function} [handler] - An event listener. If omit it, all the listeners corresponded to the `eventName` will be removed.
+       * @param {Function} [handler] - An event listener. If omit it, all the listeners that are corresponded to the `eventName` will be removed.
        * @returns {Object} delegator
        */
 
     }, {
       key: "off",
       value: function off(eventName, selector, handler) {
-        var _this2 = this;
-
         if (typeof selector === 'function') {
           handler = selector;
           selector = null;
@@ -202,26 +202,10 @@ var delegate = function () {
         if (!eventName) {
           // Delete all the listeners.
           this._subscribers = {};
-          each(this._eventCache, function (cache) {
-            return _this2._baseEventTarget.removeEventListener(cache.eventName, cache.handler, true);
-          });
-          this._eventCache = [];
         } else if (!selector && !handler) {
           // Delete all the listeners corresponded to the eventName.
           delete this._subscribers[eventName];
-
-          var _split3 = split(this._eventCache, function (cache) {
-            return cache.eventName === eventName;
-          }),
-              _split4 = _slicedToArray(_split3, 2),
-              match = _split4[0],
-              unmatch = _split4[1];
-
-          each(match, function (cache) {
-            return _this2._baseEventTarget.removeEventListener(eventName, cache.handler, true);
-          });
-          this._eventCache = unmatch;
-        } else if (selector) {
+        } else {
           // Delete all the subscribers corresponded to the eventName and the selector.
           this._subscribers[eventName] = (this._subscribers[eventName] || []).filter(function (s) {
             return s.selector === selector && (!handler || s.handler === handler);
@@ -229,16 +213,6 @@ var delegate = function () {
 
           if (!this._subscribers[eventName].length) {
             delete this._subscribers[eventName];
-          }
-        } else {
-          var index = findIndex(this._eventCache, function (cache) {
-            return cache.eventName === eventName && cache.handler === handler;
-          });
-
-          if (index > -1) {
-            this._baseEventTarget.removeEventListener(eventName, handler, true);
-
-            delete this._eventCache[index];
           }
         }
 
@@ -279,15 +253,15 @@ var delegate = function () {
     }, {
       key: "clear",
       value: function clear() {
-        var _this3 = this;
+        var _this2 = this;
 
         this.off();
-        each(Object.keys(this._handlerCache), function (key) {
-          return _this3._baseEventTarget.removeEventListener(key, _this3._handlerCache[key], true);
+        each(Object.keys(this._eventCache), function (eventName) {
+          _this2._baseEventTarget.removeEventListener(eventName, _this2._eventCache[eventName], true);
         });
-        this._handlerCache = {};
+        this._eventCache = {};
         delegateCache = delegateCache.filter(function (cache) {
-          return _this3._baseEventTarget !== cache.baseEventTarget;
+          return _this2._baseEventTarget !== cache.baseEventTarget;
         });
       }
     }]);

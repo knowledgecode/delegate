@@ -3,16 +3,14 @@
  */
 let delegateCache = [];
 
-const findIndex = (array, cb) => {
+const find = (array, cb) => {
     for (let i = 0, len = array.length; i < len; i++) {
         if (cb(array[i])) {
-            return i;
+            return array[i];
         }
     }
-    return -1;
+    return undefined;
 };
-
-const find = (array, cb) => array[findIndex(array, cb)];
 
 const split = (array, cb) => {
     const match = [];
@@ -58,31 +56,43 @@ class DelegateEvent {
 class Delegate {
     constructor (baseEventTarget) {
         this._baseEventTarget = baseEventTarget;
-        this._handlerCache = {};
+        this._eventCache = {};
         this._subscribers = {};
-        this._eventCache = [];
         return this;
     }
 
     listener (evt) {
         let subscribers = this._subscribers[evt.type] || [];
-        let target = evt.target || {};
+        let target = evt.target;
 
-        while (target.parentNode) {
+        while ((target || {}).parentNode) {
             const evt2 = new DelegateEvent(evt, target);
-            const [match, unmatch] = split(subscribers, (t => s => t.matches(s.selector))(target));
+            const [match, unmatch] = split(subscribers,
+                (t => s => t.matches(s.selector) || !s.selector && t === evt.currentTarget)(target)
+            );
 
             for (let i = 0, len = match.length; i < len; i++) {
                 match[i].handler.call(target, evt2);
                 if (evt2.abort) {
-                    break;
+                    return;
                 }
             }
-            if (!unmatch.length || evt2.stop) {
-                break;
-            }
             subscribers = unmatch;
-            target = target.parentNode || {};
+            if (!unmatch.length || evt2.stop) {
+                return;
+            }
+            target = target.parentNode;
+        }
+        target = evt.currentTarget;
+
+        const evt2 = new DelegateEvent(evt, target);
+        const [match] = split(subscribers, s => !s.selector);
+
+        for (let i = 0, len = match.length; i < len; i++) {
+            match[i].handler.call(target, evt2);
+            if (evt2.abort) {
+                return;
+            }
         }
     }
 
@@ -98,21 +108,15 @@ class Delegate {
             handler = selector;
             selector = null;
         }
-        if (selector) {
-            const subscribers = this._subscribers[eventName] = this._subscribers[eventName] || [];
+        const subscribers = this._subscribers[eventName] = this._subscribers[eventName] || [];
 
-            if (!find(subscribers, s => s.selector === selector && s.handler === handler)) {
-                subscribers.push({ selector, handler });
-                if (!this._handlerCache[eventName]) {
-                    const listener2 = this.listener.bind(this);
-
-                    this._handlerCache[eventName] = listener2;
-                    this._baseEventTarget.addEventListener(eventName, listener2, true);
-                }
+        if (!find(subscribers, s => s.selector === selector && s.handler === handler)) {
+            subscribers.push({ selector, handler });
+            if (!this._eventCache[eventName]) {
+                const listener2 = this.listener.bind(this);
+                this._eventCache[eventName] = listener2;
+                this._baseEventTarget.addEventListener(eventName, listener2, true);
             }
-        } else if (!find(this._eventCache, cache => cache.eventName === eventName && cache.handler === handler)) {
-            this._eventCache.push({ eventName, handler });
-            this._baseEventTarget.addEventListener(eventName, handler, true);
         }
         return this;
     }
@@ -121,7 +125,7 @@ class Delegate {
      * off
      * @param {string} [eventName] - An event name. If omit it, all the listeners will be removed.
      * @param {string|Function} [selector] - A selector to match | An event listener
-     * @param {Function} [handler] - An event listener. If omit it, all the listeners corresponded to the `eventName` will be removed.
+     * @param {Function} [handler] - An event listener. If omit it, all the listeners that are corresponded to the `eventName` will be removed.
      * @returns {Object} delegator
      */
     off (eventName, selector, handler) {
@@ -132,28 +136,16 @@ class Delegate {
         if (!eventName) {
             // Delete all the listeners.
             this._subscribers = {};
-            each(this._eventCache, cache => this._baseEventTarget.removeEventListener(cache.eventName, cache.handler, true));
-            this._eventCache = [];
         } else if (!selector && !handler) {
             // Delete all the listeners corresponded to the eventName.
             delete this._subscribers[eventName];
-
-            const [match, unmatch] = split(this._eventCache, cache => cache.eventName === eventName);
-
-            each(match, cache => this._baseEventTarget.removeEventListener(eventName, cache.handler, true));
-            this._eventCache = unmatch;
-        } else if (selector) {
+        } else {
             // Delete all the subscribers corresponded to the eventName and the selector.
-            this._subscribers[eventName] = (this._subscribers[eventName] || []).filter(s => s.selector === selector && (!handler || s.handler === handler));
+            this._subscribers[eventName] = (this._subscribers[eventName] || []).filter(
+                s => s.selector === selector && (!handler || s.handler === handler)
+            );
             if (!this._subscribers[eventName].length) {
                 delete this._subscribers[eventName];
-            }
-        } else {
-            const index = findIndex(this._eventCache, cache => cache.eventName === eventName && cache.handler === handler);
-
-            if (index > -1) {
-                this._baseEventTarget.removeEventListener(eventName, handler, true);
-                delete this._eventCache[index];
             }
         }
         return this;
@@ -186,8 +178,10 @@ class Delegate {
      */
     clear () {
         this.off();
-        each(Object.keys(this._handlerCache), key => this._baseEventTarget.removeEventListener(key, this._handlerCache[key], true));
-        this._handlerCache = {};
+        each(Object.keys(this._eventCache), eventName => {
+            this._baseEventTarget.removeEventListener(eventName, this._eventCache[eventName], true);
+        });
+        this._eventCache = {};
         delegateCache = delegateCache.filter(cache => this._baseEventTarget !== cache.baseEventTarget);
     }
 }
