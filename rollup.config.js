@@ -16,27 +16,27 @@ export default [
             },
             {
                 file: 'delegate.js',
-                format: 'iife',
+                format: 'umd',
                 name: 'delegate',
                 esModule: false
             },
             {
                 file: 'delegate.min.js',
-                format: 'iife',
+                format: 'umd',
                 name: 'delegate',
                 esModule: false,
                 plugins: [terser()]
             },
             {
                 file: 'es5/delegate.js',
-                format: 'iife',
+                format: 'umd',
                 name: 'delegate',
                 esModule: false,
                 plugins: [getBabelOutputPlugin({ allowAllFormats: true, presets: ['@babel/preset-env'] })]
             },
             {
                 file: 'es5/delegate.min.js',
-                format: 'iife',
+                format: 'umd',
                 name: 'delegate',
                 esModule: false,
                 plugins: [getBabelOutputPlugin({ allowAllFormats: true, presets: ['@babel/preset-env'] }), terser({ ecma: 5 })]
