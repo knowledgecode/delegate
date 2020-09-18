@@ -1,5 +1,8 @@
-var delegate = (function () {
-    'use strict';
+(function (global, factory) {
+    typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
+    typeof define === 'function' && define.amd ? define(factory) :
+    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.delegate = factory());
+}(this, (function () { 'use strict';
 
     /**
      * @preserve delegate (c) KNOWLEDGECODE | MIT
@@ -15,24 +18,18 @@ var delegate = (function () {
         return undefined;
     };
 
-    const split = (array, cb) => {
-        const match = [];
-        const unmatch = [];
-
-        for (let i = 0, len = array.length; i < len; i++) {
-            if (cb(array[i])) {
-                match.push(array[i]);
-            } else {
-                unmatch.push(array[i]);
-            }
-        }
-        return [match, unmatch];
-    };
-
     const each = (array, cb) => {
         for (let i = 0, len = array.length; i < len; i++) {
             cb(array[i]);
         }
+    };
+
+    const split = (array, cb) => {
+        const match = [];
+        const unmatch = [];
+
+        each(array, item => cb(item) ? match.push(item) : unmatch.push(item));
+        return [match, unmatch];
     };
 
     class DelegateEvent {
@@ -67,34 +64,43 @@ var delegate = (function () {
         listener (evt) {
             let subscribers = this._subscribers[evt.type] || [];
             let target = evt.target;
+            let match;
 
+            if (!subscribers.length) {
+                return;
+            }
             while ((target || {}).parentNode) {
-                const evt2 = new DelegateEvent(evt, target);
-                const [match, unmatch] = split(subscribers,
+                [match, subscribers] = split(subscribers,
                     (t => s => t.matches(s.selector) || !s.selector && t === evt.currentTarget)(target)
                 );
+
+                if (match.length) {
+                    const evt2 = new DelegateEvent(evt, target);
+
+                    for (let i = 0, len = match.length; i < len; i++) {
+                        match[i].handler.call(target, evt2);
+                        if (evt2.abort) {
+                            return;
+                        }
+                    }
+                    if (!subscribers.length || evt2.stop) {
+                        return;
+                    }
+                }
+                target = target.parentNode;
+            }
+
+            [match] = split(subscribers, s => !s.selector);
+
+            if (match.length) {
+                target = evt.currentTarget;
+                const evt2 = new DelegateEvent(evt, target);
 
                 for (let i = 0, len = match.length; i < len; i++) {
                     match[i].handler.call(target, evt2);
                     if (evt2.abort) {
                         return;
                     }
-                }
-                subscribers = unmatch;
-                if (!unmatch.length || evt2.stop) {
-                    return;
-                }
-                target = target.parentNode;
-            }
-            target = evt.currentTarget;
-
-            const evt2 = new DelegateEvent(evt, target);
-            const [match] = split(subscribers, s => !s.selector);
-
-            for (let i = 0, len = match.length; i < len; i++) {
-                match[i].handler.call(target, evt2);
-                if (evt2.abort) {
-                    return;
                 }
             }
         }
@@ -201,4 +207,4 @@ var delegate = (function () {
 
     return delegate;
 
-}());
+})));

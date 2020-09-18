@@ -16,7 +16,11 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
-var delegate = function () {
+function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+(function (global, factory) {
+  (typeof exports === "undefined" ? "undefined" : _typeof(exports)) === 'object' && typeof module !== 'undefined' ? module.exports = factory() : typeof define === 'function' && define.amd ? define(factory) : (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.delegate = factory());
+})(this, function () {
   'use strict';
   /**
    * @preserve delegate (c) KNOWLEDGECODE | MIT
@@ -34,25 +38,19 @@ var delegate = function () {
     return undefined;
   };
 
-  var split = function split(array, cb) {
-    var match = [];
-    var unmatch = [];
-
-    for (var i = 0, len = array.length; i < len; i++) {
-      if (cb(array[i])) {
-        match.push(array[i]);
-      } else {
-        unmatch.push(array[i]);
-      }
-    }
-
-    return [match, unmatch];
-  };
-
   var each = function each(array, cb) {
     for (var i = 0, len = array.length; i < len; i++) {
       cb(array[i]);
     }
+  };
+
+  var split = function split(array, cb) {
+    var match = [];
+    var unmatch = [];
+    each(array, function (item) {
+      return cb(item) ? match.push(item) : unmatch.push(item);
+    });
+    return [match, unmatch];
   };
 
   var DelegateEvent = /*#__PURE__*/function () {
@@ -100,50 +98,61 @@ var delegate = function () {
       value: function listener(evt) {
         var subscribers = this._subscribers[evt.type] || [];
         var target = evt.target;
+        var match;
+
+        if (!subscribers.length) {
+          return;
+        }
 
         while ((target || {}).parentNode) {
-          var _evt = new DelegateEvent(evt, target);
-
           var _split = split(subscribers, function (t) {
             return function (s) {
               return t.matches(s.selector) || !s.selector && t === evt.currentTarget;
             };
-          }(target)),
-              _split2 = _slicedToArray(_split, 2),
-              _match = _split2[0],
-              unmatch = _split2[1];
+          }(target));
 
-          for (var i = 0, len = _match.length; i < len; i++) {
-            _match[i].handler.call(target, _evt);
+          var _split2 = _slicedToArray(_split, 2);
 
-            if (_evt.abort) {
+          match = _split2[0];
+          subscribers = _split2[1];
+
+          if (match.length) {
+            var evt2 = new DelegateEvent(evt, target);
+
+            for (var i = 0, len = match.length; i < len; i++) {
+              match[i].handler.call(target, evt2);
+
+              if (evt2.abort) {
+                return;
+              }
+            }
+
+            if (!subscribers.length || evt2.stop) {
               return;
             }
-          }
-
-          subscribers = unmatch;
-
-          if (!unmatch.length || _evt.stop) {
-            return;
           }
 
           target = target.parentNode;
         }
 
-        target = evt.currentTarget;
-        var evt2 = new DelegateEvent(evt, target);
-
         var _split3 = split(subscribers, function (s) {
           return !s.selector;
-        }),
-            _split4 = _slicedToArray(_split3, 1),
-            match = _split4[0];
+        });
 
-        for (var _i2 = 0, _len = match.length; _i2 < _len; _i2++) {
-          match[_i2].handler.call(target, evt2);
+        var _split4 = _slicedToArray(_split3, 1);
 
-          if (evt2.abort) {
-            return;
+        match = _split4[0];
+
+        if (match.length) {
+          target = evt.currentTarget;
+          var evt2 = new DelegateEvent(evt, target);
+
+          for (var i = 0, len = match.length; i < len; i++) {
+            match[i].handler.call(target, evt2);
+
+            if (evt2.abort) {
+              return;
+            }
           }
         }
       }
@@ -286,4 +295,4 @@ var delegate = function () {
   };
 
   return delegate;
-}();
+});
