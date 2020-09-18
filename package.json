@@ -1,6 +1,6 @@
 {
   "name": "@knowledgecode/delegate",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "An event delegation library for the browser",
   "main": "delegate.js",
   "module": "esm/delegate.es.js",
