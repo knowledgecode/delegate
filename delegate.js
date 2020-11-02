@@ -7,7 +7,11 @@
     /**
      * @preserve delegate (c) KNOWLEDGECODE | MIT
      */
-    let delegateCache = [];
+    if (!Element.prototype.matches) {
+        Element.prototype.matches = Element.prototype.webkitMatchesSelector || Element.prototype.msMatchesSelector;
+    }
+
+    const delegateCache = new WeakMap();
 
     const find = (array, cb) => {
         for (let i = 0, len = array.length; i < len; i++) {
@@ -18,18 +22,17 @@
         return undefined;
     };
 
-    const each = (array, cb) => {
+    const forEach = (array, cb) => {
         for (let i = 0, len = array.length; i < len; i++) {
-            cb(array[i]);
+            cb(array[i], i);
         }
     };
 
     const split = (array, cb) => {
-        const match = [];
-        const unmatch = [];
+        const result = [[], []];
 
-        each(array, item => cb(item) ? match.push(item) : unmatch.push(item));
-        return [match, unmatch];
+        forEach(array, item => cb(item) ? result[0].push(item) : result[1].push(item));
+        return result;
     };
 
     class DelegateEvent {
@@ -187,22 +190,23 @@
          */
         clear () {
             this.off();
-            each(Object.keys(this._eventCache), eventName => {
+            forEach(Object.keys(this._eventCache), eventName => {
                 this._baseEventTarget.removeEventListener(eventName, this._eventCache[eventName], true);
             });
             this._eventCache = {};
-            delegateCache = delegateCache.filter(cache => this._baseEventTarget !== cache.baseEventTarget);
+            delegateCache.delete(this._baseEventTarget);
         }
     }
 
     const delegate = baseEventTarget => {
-        if (!baseEventTarget instanceof EventTarget) {
+        if (!(typeof baseEventTarget.addEventListener === 'function')) {
             throw new TypeError(`${baseEventTarget} is not an EventTarget`);
         }
-        return (find(delegateCache, cache => baseEventTarget === cache.baseEventTarget) || (() => {
-            delegateCache.push({ baseEventTarget, delegator: new Delegate(baseEventTarget) });
-            return delegateCache.slice(-1)[0];
-        })()).delegator;
+        return delegateCache.get(baseEventTarget) || (() => {
+            const delegator = new Delegate(baseEventTarget);
+            delegateCache.set(baseEventTarget, delegator);
+            return delegator;
+        })();
     };
 
     return delegate;

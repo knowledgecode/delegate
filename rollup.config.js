@@ -1,4 +1,3 @@
-import { getBabelOutputPlugin } from '@rollup/plugin-babel';
 import { terser } from 'rollup-plugin-terser';
 
 export default [
@@ -12,7 +11,7 @@ export default [
             {
                 file: 'esm/delegate.es.min.js',
                 format: 'es',
-                plugins: [terser()]
+                plugins: [terser({ module: true })]
             },
             {
                 file: 'delegate.js',
@@ -26,20 +25,6 @@ export default [
                 name: 'delegate',
                 esModule: false,
                 plugins: [terser()]
-            },
-            {
-                file: 'es5/delegate.js',
-                format: 'umd',
-                name: 'delegate',
-                esModule: false,
-                plugins: [getBabelOutputPlugin({ allowAllFormats: true, presets: ['@babel/preset-env'] })]
-            },
-            {
-                file: 'es5/delegate.min.js',
-                format: 'umd',
-                name: 'delegate',
-                esModule: false,
-                plugins: [getBabelOutputPlugin({ allowAllFormats: true, presets: ['@babel/preset-env'] }), terser({ ecma: 5 })]
             }
         ]
     }
