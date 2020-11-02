@@ -10,6 +10,16 @@ via npm:
 npm install knowledgecode@delegate --save
 ```
 
+## Bundle
+
+| File                   | Build                |
+|:-----------------------|:---------------------|
+| esm/delegate.es.js     | ES Modules           |
+| esm/delegate.es.min.js | ES Modules, minified |
+| delegate.js            | ES2015               |
+| delegate.min.js        | ES2015, minified     |
+| es5/delegate.min.js    | ES5, minified        |
+
 ## Usage
 
 ES Modules:
@@ -176,7 +186,7 @@ delegate(document)
 
 ## Browser Support
 
-Chrome, Firefox, Safari, Edge, IE9+
+Chrome, Firefox, Safari, Edge, IE11
 
 ## License
 
