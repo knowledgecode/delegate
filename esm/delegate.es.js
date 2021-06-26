@@ -148,7 +148,7 @@ class Delegate {
         } else {
             // Delete all the subscribers corresponded to the eventName and the selector.
             this._subscribers[eventName] = (this._subscribers[eventName] || []).filter(
-                s => s.selector === selector && (!handler || s.handler === handler)
+                s => s.selector !== selector || handler && s.handler !== handler
             );
             if (!this._subscribers[eventName].length) {
                 delete this._subscribers[eventName];
