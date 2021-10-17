@@ -2,38 +2,16 @@
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.delegate = factory());
-}(this, (function () { 'use strict';
+})(this, (function () { 'use strict';
 
     /**
      * @preserve delegate (c) KNOWLEDGECODE | MIT
      */
     if (!Element.prototype.matches) {
-        Element.prototype.matches = Element.prototype.webkitMatchesSelector || Element.prototype.msMatchesSelector;
+        Element.prototype.matches = Element.prototype.webkitMatchesSelector || Element.prototype.mozMatchesSelector || Element.prototype.msMatchesSelector;
     }
 
     const delegateCache = new WeakMap();
-
-    const find = (array, cb) => {
-        for (let i = 0, len = array.length; i < len; i++) {
-            if (cb(array[i])) {
-                return array[i];
-            }
-        }
-        return undefined;
-    };
-
-    const forEach = (array, cb) => {
-        for (let i = 0, len = array.length; i < len; i++) {
-            cb(array[i], i);
-        }
-    };
-
-    const split = (array, cb) => {
-        const result = [[], []];
-
-        forEach(array, item => cb(item) ? result[0].push(item) : result[1].push(item));
-        return result;
-    };
 
     class DelegateEvent {
         constructor (evt, target) {
@@ -61,51 +39,35 @@
             this._baseEventTarget = baseEventTarget;
             this._eventCache = {};
             this._subscribers = {};
-            return this;
         }
 
-        listener (evt) {
-            let subscribers = this._subscribers[evt.type] || [];
-            let target = evt.target;
-            let match;
+        listener (passive, evt) {
+            let subscribers = this._subscribers[evt.type + passive] || [];
+            let target = evt.currentTarget === window ? window : evt.target;
 
-            if (!subscribers.length) {
-                return;
-            }
-            while ((target || {}).parentNode) {
-                [match, subscribers] = split(subscribers,
-                    (t => s => t.matches(s.selector) || !s.selector && t === evt.currentTarget)(target)
-                );
-
-                if (match.length) {
-                    const evt2 = new DelegateEvent(evt, target);
-
-                    for (let i = 0, len = match.length; i < len; i++) {
-                        match[i].handler.call(target, evt2);
-                        if (evt2.abort) {
-                            return;
-                        }
-                    }
-                    if (!subscribers.length || evt2.stop) {
-                        return;
-                    }
-                }
-                target = target.parentNode;
-            }
-
-            [match] = split(subscribers, s => !s.selector);
-
-            if (match.length) {
-                target = evt.currentTarget;
+            do {
                 const evt2 = new DelegateEvent(evt, target);
 
-                for (let i = 0, len = match.length; i < len; i++) {
-                    match[i].handler.call(target, evt2);
+                subscribers = subscribers.filter((t => s => {
                     if (evt2.abort) {
-                        return;
+                        return false;
                     }
+                    if (t === evt.currentTarget) {
+                        if (!s.selector) {
+                            s.handler.call(t, evt2);
+                        }
+                        return false;
+                    }
+                    if (s.selector && t.matches(s.selector)) {
+                        s.handler.call(t, evt2);
+                        return false;
+                    }
+                    return true;
+                })(target));
+                if (!subscribers.length || evt2.stop) {
+                    break;
                 }
-            }
+            } while ((target = target.parentNode));
         }
 
         /**
@@ -122,12 +84,14 @@
             }
             const subscribers = this._subscribers[eventName] = this._subscribers[eventName] || [];
 
-            if (!find(subscribers, s => s.selector === selector && s.handler === handler)) {
+            if (!subscribers.some(s => s.selector === selector && s.handler === handler)) {
                 subscribers.push({ selector, handler });
                 if (!this._eventCache[eventName]) {
-                    const listener2 = this.listener.bind(this);
+                    const [eventName2, passive] = eventName.split(':');
+                    const listener2 = this.listener.bind(this, passive === 'passive' ? ':passive' : '');
+
                     this._eventCache[eventName] = listener2;
-                    this._baseEventTarget.addEventListener(eventName, listener2, true);
+                    this._baseEventTarget.addEventListener(eventName2, listener2, { capture: true, passive: passive === 'passive' });
                 }
             }
             return this;
@@ -190,8 +154,9 @@
          */
         clear () {
             this.off();
-            forEach(Object.keys(this._eventCache), eventName => {
-                this._baseEventTarget.removeEventListener(eventName, this._eventCache[eventName], true);
+            Object.keys(this._eventCache).forEach(eventName => {
+                const [eventName2, passive] = eventName.split(':');
+                this._baseEventTarget.removeEventListener(eventName2, this._eventCache[eventName], { capture: true, passive: passive === 'passive' });
             });
             this._eventCache = {};
             delegateCache.delete(this._baseEventTarget);
@@ -211,4 +176,4 @@
 
     return delegate;
 
-})));
+}));
