@@ -1,12 +1,12 @@
 {
   "name": "@knowledgecode/delegate",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "An event delegation library for the browser",
   "main": "delegate.js",
-  "module": "esm/delegate.es.js",
+  "module": "esm/delegate.js",
   "scripts": {
     "build": "rollup --config rollup.config.js",
-    "es5": "./compile delegate.js es5/delegate.min.js",
+    "es5": "./compile delegate.js es5/delegate.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -26,6 +26,6 @@
   "homepage": "https://github.com/knowledgecode/delegate#readme",
   "devDependencies": {
     "@ampproject/rollup-plugin-closure-compiler": "^0.26.0",
-    "rollup": "^2.52.3"
+    "rollup": "^2.58.0"
   }
 }
