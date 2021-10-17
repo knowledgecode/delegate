@@ -12,13 +12,12 @@ npm install knowledgecode@delegate --save
 
 ## Bundle
 
-| File                   | Build                |
-|:-----------------------|:---------------------|
-| esm/delegate.es.js     | ES Modules           |
-| esm/delegate.es.min.js | ES Modules, minified |
-| delegate.js            | ES2015               |
-| delegate.min.js        | ES2015, minified     |
-| es5/delegate.min.js    | ES5, minified        |
+| File            | Build                |
+|:----------------|:---------------------|
+| esm/delegate.js | ES Modules, minified |
+| delegate.js     | ES2015               |
+| delegate.min.js | ES2015, minified     |
+| es5/delegate.js | ES5, minified        |
 
 ## Usage
 
@@ -26,7 +25,7 @@ ES Modules:
 
 ```html
 <script type="module">
-  import delegate from './esm/delegate.es.min.js';
+  import delegate from './esm/delegate.js';
 
   delegate(document).on('click', '#button', () => {
     alert('Clicked!');
@@ -48,7 +47,7 @@ ES2015:
 ES5:
 
 ```html
-<script src="./es5/delegate.min.js"></script>
+<script src="./es5/delegate.js"></script>
 <script>
   delegate(document).on('click', '#button', function () {
     alert('Clicked!');
@@ -60,7 +59,7 @@ ES5:
 
 ### delegate
 
-Create a delegate instance.
+Creates a delegate instance.
 
 * {**Object**} baseEventTarget - A base element that receives events
 
@@ -72,7 +71,7 @@ const container = delegate(document.querySelector('.container'));
 
 ### on
 
-Register an event listener.
+Registers an event listener.
 
 * {**string**} eventName - An event name
 * {**string|Function**} selector - A selector to match | An event listener
@@ -93,7 +92,7 @@ body.on('click', () => {
 
 ### one
 
-Register an event listener that is fired only once.
+Registers an event listener that is fired only once.
 
 * {**string**} eventName - An event name
 * {**string|Function**} selector - A selector to match | An event listener, which is fired only once.
@@ -109,7 +108,7 @@ container.one('click', '#button', () => {
 
 ### off
 
-Remove registered event listeners.
+Removes registered event listeners.
 
 * {**string**} [eventName] - An event name. If omit it, all the listeners will be removed.
 * {**string|Function**} [selector] - A selector to match | An event listener
@@ -135,27 +134,10 @@ delegate(document).off();
 
 ### clear
 
-Remove all the listeners and clean up. Although this method is similar to `off()`, in this case the instance is no longer able to reuse.
+Removes all the listeners and clean up. Although this method is similar to `off()`, in this case the instance is no longer able to reuse.
 
 ```javascript
 delegate(document).clear();
-```
-
-## Method Chaining
-
-This library supports method chaining like jQuery.
-
-```javascript
-delegate(document)
-  .on('mousedown', '#button', () => {
-    alert('Mouse down!');
-  })
-  .on('mouseover', '#button', () => {
-    alert('Mouse over!');
-  })
-  .on('mouseup', '#button', () => {
-    alert('Mouse up!');
-  });
 ```
 
 ## Event Object
@@ -182,6 +164,44 @@ delegate(document)
       // evt.currentTarget === this
       console.log(evt.currentTarget.value);
   })
+```
+
+## Passive Listener
+
+You can specify a passive listener like this:
+
+```javascript
+const listener = evt => {
+  // Error (It cannot be prevent this event).
+  evt.preventDefault();
+};
+
+delegate(document)
+  .on('touchstart:passive', '.touch-area', listener);
+```
+
+Note that the `touchstart:passive` is clearly distinguished from `touchstart`. If you want to remove this listener, you need to write like this:
+
+```javascript
+delegate(document)
+  .off('touchstart:passive', '.touch-area', listener);
+```
+
+## Method Chaining
+
+This library supports method chaining like jQuery.
+
+```javascript
+delegate(document)
+  .on('mousedown', '#button', () => {
+    alert('Mouse down!');
+  })
+  .on('mouseover', '#button', () => {
+    alert('Mouse over!');
+  })
+  .on('mouseup', '#button', () => {
+    alert('Mouse up!');
+  });
 ```
 
 ## Browser Support
