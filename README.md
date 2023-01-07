@@ -1,31 +1,26 @@
 # Delegate
 
-This is an event delegation library for the browser. As the interfaces it has are similar to jQuery's, you will be able to learn them easily.
+This is an event delegation library for the browser. The interface is similar to that of `jQuery`, making it easy to learn.
 
 ## Installation
 
 via npm:
 
 ```shell
-npm install knowledgecode@delegate --save
+npm i knowledgecode@delegate
 ```
 
-## Bundle
-
-| File            | Build                |
-|:----------------|:---------------------|
-| esm/delegate.js | ES Modules, minified |
-| delegate.js     | ES2015               |
-| delegate.min.js | ES2015, minified     |
-| es5/delegate.js | ES5, minified        |
-
 ## Usage
+
+```javascript
+import delegate from 'knowledgecode@delegate';
+```
 
 ES Modules:
 
 ```html
 <script type="module">
-  import delegate from './esm/delegate.js';
+  import delegate from '/path/to/esm/delegate.js';
 
   delegate(document).on('click', '#button', () => {
     alert('Clicked!');
@@ -33,23 +28,12 @@ ES Modules:
 </script>
 ```
 
-ES2015:
+Traditional:
 
 ```html
-<script src="./delegate.min.js"></script>
+<script src="/path/to/umd/delegate.js"></script>
 <script>
   delegate(document).on('click', '#button', () => {
-    alert('Clicked!');
-  });
-</script>
-```
-
-ES5:
-
-```html
-<script src="./es5/delegate.js"></script>
-<script>
-  delegate(document).on('click', '#button', function () {
     alert('Clicked!');
   });
 </script>
@@ -57,7 +41,7 @@ ES5:
 
 ## API
 
-### delegate
+### `delegate`
 
 Creates a delegate instance.
 
@@ -65,11 +49,13 @@ Creates a delegate instance.
 
 ```javascript
 const body = delegate(document.body);
+```
 
+```javascript
 const container = delegate(document.querySelector('.container'));
 ```
 
-### on
+### `on`
 
 Registers an event listener.
 
@@ -84,13 +70,13 @@ body.on('click', '#button', () => {
   alert('Clicked!');
 });
 
-// If a base element itself should process an event:
+// If the base element itself handles the event:
 body.on('click', () => {
   alert('Clicked');
 });
 ```
 
-### one
+### `one`
 
 Registers an event listener that is fired only once.
 
@@ -104,9 +90,14 @@ const container = delegate(document.querySelector('.container'));
 container.one('click', '#button', () => {
   alert('Clicked!');
 });
+
+// If the base element itself handles the event:
+container.one('click', () => {
+  alert('Clicked');
+});
 ```
 
-### off
+### `off`
 
 Removes registered event listeners.
 
@@ -115,26 +106,35 @@ Removes registered event listeners.
 * {**Function**} [handler] - An event listener. If omit it, all the listeners that are corresponded to the `eventName` will be removed.
 
 ```javascript
-const handler = () => alert('Clicked!');
+const handler1 = () => alert('Clicked!');
+const handler2 = () => alert('Clicked!');
+const handler3 = () => alert('Mouse Over!');
 
-delegate(document).on('click', '#button', handler);
+delegate(document)
+  .on('click', '#button', handler1)         // No.1
+  .on('click', '#button', handler2)         // No.2
+  .on('mouseover', '#button', handler3)     // No.3
+  .on('click', handler1);                   // No.4
 
-// If remove the specific listener:
-delegate(document).off('click', '#button', handler);
+// To remove only event No.1:
+delegate(document).off('click', '#button', handler1);
 
-// If remove all the listeners corresponded to the selector:
+// To remove only event No.4:
+delegate(document).off('click', handler1);
+
+// To remove all click events registered to #button (No.1 and No.2):
 delegate(document).off('click', '#button');
 
-// If remove all the listeners corresponded to the eventName:
+// To remove all click events (No.1, No.3 and No.4):
 delegate(document).off('click');
 
-// If the all the listeners:
+// To remove all events:
 delegate(document).off();
 ```
 
-### clear
+### `clear`
 
-Removes all the listeners and clean up. Although this method is similar to `off()`, in this case the instance is no longer able to reuse.
+Removes all registered event listeners. It is almost the same as `off()`.
 
 ```javascript
 delegate(document).clear();
@@ -142,11 +142,16 @@ delegate(document).clear();
 
 ## Event Object
 
-A listener receives an event object. This object provides the following methods and properties:
+Listeners receive an event object when an event is fired. This object provides the following methods and properties:
+
+### `Methods`
 
 * `preventDefault()`
 * `stopPropagation()`
 * `stopImmediatePropagation()`
+
+### `Properties`
+
 * `originalEvent` - a genuine event object when an event is fired
 * `currentTarget` - the current element
 
@@ -189,7 +194,7 @@ delegate(document)
 
 ## Method Chaining
 
-This library supports method chaining like jQuery.
+This library supports method chaining like `jQuery`.
 
 ```javascript
 delegate(document)
@@ -206,7 +211,7 @@ delegate(document)
 
 ## Browser Support
 
-Chrome, Firefox, Safari, Edge, IE11
+Chrome, Firefox, Safari, Edge
 
 ## License
 

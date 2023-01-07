@@ -1,5 +1,2 @@
-compile
-node_modules/
-rollup.config.js
-src/
-test/
+*.js
+test
