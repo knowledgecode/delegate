@@ -2,48 +2,13 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="format-detection" content="telephone=no">
 <title>Delegate Test</title>
-<style>
-body {
-  margin: 0;
-}
-.div1 {
-  background-color: rgb(255,0,0);
-  height: 120px;
-  width: 120px;
-}
-.div2 {
-  background-color: rgb(255,127,127);
-  height: 80px;
-  width: 80px;
-}
-.div3 {
-  background-color: rgb(255,191,191);
-  height: 40px;
-  width: 40px;
-}
-</style>
 </head>
 <body>
-  <div class="div1">
-    <div class="div2">
-      <div class="div3">
-      </div>
+  <div class="div2">
+    <div class="div1">
+      <input type="checkbox">
     </div>
   </div>
-<script src="../delegate.js"></script>
-<script>
-delegate(document)
-  .on('click', () => console.log('document'))
-  .on('click', 'body', evt => {
-    console.log('body');
-    evt.stopPropagation();
-  })
-  .on('click', '.div1', () => console.log('div1'))
-  .on('click', '.div2', () => console.log('div2'))
-  .on('click', '.div3', () => console.log('div3'));
-</script>
 </body>
 </html>

@@ -1,21 +1,21 @@
 {
   "name": "@knowledgecode/delegate",
-  "version": "0.5.0",
-  "description": "An event delegation library for the browser",
-  "main": "delegate.js",
-  "module": "esm/delegate.js",
+  "version": "0.6.0",
+  "description": "Event delegation library for the browser",
+  "main": "dist/iife/delegate.js",
+  "module": "dist/esm/delegate.js",
+  "types": "src/index.d.ts",
   "scripts": {
-    "build": "rollup --config rollup.config.js",
-    "es5": "./compile delegate.js es5/delegate.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "rollup -c",
+    "test": "npm run build && karma start",
+    "test:ts": "tsd -f test/ts"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/knowledgecode/delegate.git"
   },
   "keywords": [
-    "event",
-    "delegate",
+    "events",
     "delegation"
   ],
   "author": "KNOWLEDGECODE",
@@ -25,7 +25,15 @@
   },
   "homepage": "https://github.com/knowledgecode/delegate#readme",
   "devDependencies": {
-    "@ampproject/rollup-plugin-closure-compiler": "^0.26.0",
-    "rollup": "^2.58.0"
+    "@rollup/plugin-terser": "^0.2.1",
+    "chai": "^4.3.7",
+    "karma": "^6.4.1",
+    "karma-chai": "^0.1.0",
+    "karma-chrome-launcher": "^3.1.1",
+    "karma-mocha": "^2.0.1",
+    "karma-mocha-reporter": "^2.2.5",
+    "mocha": "^10.2.0",
+    "rollup": "^3.9.1",
+    "tsd": "^0.25.0"
   }
 }
