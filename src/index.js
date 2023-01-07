@@ -1,11 +1,7 @@
 /**
  * @preserve delegate (c) KNOWLEDGECODE | MIT
  */
-if (!Element.prototype.matches) {
-    Element.prototype.matches = Element.prototype.webkitMatchesSelector || Element.prototype.mozMatchesSelector || Element.prototype.msMatchesSelector;
-}
-
-const delegateCache = new WeakMap();
+const delegatorCache = new WeakMap();
 
 class DelegateEvent {
     constructor (evt, target) {
@@ -31,37 +27,39 @@ class DelegateEvent {
 class Delegate {
     constructor (baseEventTarget) {
         this._baseEventTarget = baseEventTarget;
-        this._eventCache = {};
-        this._subscribers = {};
+        this._listenerCache = new Map();
+        this._subscriberCache = new Map();
     }
 
-    listener (passive, evt) {
-        let subscribers = this._subscribers[evt.type + passive] || [];
-        let target = evt.currentTarget === window ? window : evt.target;
-
-        do {
+    _listener (passive, evt) {
+        const fn = (target, subsc) => {
             const evt2 = new DelegateEvent(evt, target);
-
-            subscribers = subscribers.filter((t => s => {
+            const subsc2 = subsc.filter(s => {
                 if (evt2.abort) {
                     return false;
                 }
-                if (t === evt.currentTarget) {
+                if (target === evt.currentTarget) {
                     if (!s.selector) {
-                        s.handler.call(t, evt2);
+                        s.handler.call(target, evt2);
                     }
                     return false;
                 }
-                if (s.selector && t.matches(s.selector)) {
-                    s.handler.call(t, evt2);
+                if (s.selector && target.matches(s.selector)) {
+                    s.handler.call(target, evt2);
                     return false;
                 }
                 return true;
-            })(target));
-            if (!subscribers.length || evt2.stop) {
-                break;
+            });
+
+            if (target.parentNode && subsc2.length && !evt2.stop) {
+                fn(target.parentNode, subsc2);
             }
-        } while ((target = target.parentNode));
+        };
+
+        fn(
+            evt.currentTarget === self ? self : evt.target,
+            this._subscriberCache.get(`${evt.type}${passive ? ':passive' : ''}`) || []
+        );
     }
 
     /**
@@ -76,26 +74,30 @@ class Delegate {
             handler = selector;
             selector = null;
         }
-        const subscribers = this._subscribers[eventName] = this._subscribers[eventName] || [];
 
-        if (!subscribers.some(s => s.selector === selector && s.handler === handler)) {
-            subscribers.push({ selector, handler });
-            if (!this._eventCache[eventName]) {
+        const subsc = this._subscriberCache.get(eventName) || [];
+
+        if (subsc.findIndex(s => s.selector === selector && s.handler === handler) < 0) {
+            subsc.push({ selector, handler });
+            if (!this._listenerCache.has(eventName)) {
                 const [eventName2, passive] = eventName.split(':');
-                const listener2 = this.listener.bind(this, passive === 'passive' ? ':passive' : '');
+                const listener2 = this._listener.bind(this, passive === 'passive');
 
-                this._eventCache[eventName] = listener2;
-                this._baseEventTarget.addEventListener(eventName2, listener2, { capture: true, passive: passive === 'passive' });
+                this._listenerCache.set(eventName, listener2);
+                this._baseEventTarget.addEventListener(
+                    eventName2, listener2, { capture: true, passive: passive === 'passive' }
+                );
             }
         }
+        this._subscriberCache.set(eventName, subsc);
         return this;
     }
 
     /**
      * off
-     * @param {string} [eventName] - An event name. If omit it, all the listeners will be removed.
-     * @param {string|Function} [selector] - A selector to match | An event listener
-     * @param {Function} [handler] - An event listener. If omit it, all the listeners that are corresponded to the `eventName` will be removed.
+     * @param {string} [eventName] - An event name
+     * @param {string} [selector] - A selector to match | An event listener
+     * @param {Function} [handler] - An event listener
      * @returns {Object} delegator
      */
     off (eventName, selector, handler) {
@@ -103,20 +105,35 @@ class Delegate {
             handler = selector;
             selector = null;
         }
-        if (!eventName) {
-            // Delete all the listeners.
-            this._subscribers = {};
-        } else if (!selector && !handler) {
-            // Delete all the listeners corresponded to the eventName.
-            delete this._subscribers[eventName];
-        } else {
-            // Delete all the subscribers corresponded to the eventName and the selector.
-            this._subscribers[eventName] = (this._subscribers[eventName] || []).filter(
-                s => s.selector !== selector || handler && s.handler !== handler
+
+        const removeEventListener = (_listener, _eventName) => {
+            const [eventName2, passive] = _eventName.split(':');
+
+            this._baseEventTarget.removeEventListener(
+                eventName2, _listener, { capture: true, passive: passive === 'passive' }
             );
-            if (!this._subscribers[eventName].length) {
-                delete this._subscribers[eventName];
+        };
+
+        if (eventName) {
+            const subsc = (this._subscriberCache.get(eventName) || [])
+                .filter(s => selector !== undefined && s.selector !== selector || handler && s.handler !== handler);
+
+            if (subsc.length) {
+                this._subscriberCache.set(eventName, subsc);
+            } else {
+                this._subscriberCache.delete(eventName);
+
+                const listener = this._listenerCache.get(eventName);
+
+                if (listener) {
+                    this._listenerCache.delete(eventName);
+                    removeEventListener(listener, eventName);
+                }
             }
+        } else {
+            this._subscriberCache.clear();
+            this._listenerCache.forEach(removeEventListener);
+            this._listenerCache.clear();
         }
         return this;
     }
@@ -129,17 +146,11 @@ class Delegate {
      * @returns {Object} delegator
      */
     one (eventName, selector, handler) {
-        const _this = this;
-        const handler2 = function (evt) {
-            _this.off(eventName, selector || handler2, handler2);
-            handler.call(this, evt);
+        const handler2 = evt => {
+            this.off(eventName, selector || null, handler2);
+            handler.call(handler, evt);
         };
-        if (typeof selector === 'function') {
-            handler = selector;
-            selector = null;
-            return this.on(eventName, handler2);
-        }
-        return this.on(eventName, selector, handler2);
+        return this.on(eventName, selector || null, handler2);
     }
 
     /**
@@ -148,22 +159,17 @@ class Delegate {
      */
     clear () {
         this.off();
-        Object.keys(this._eventCache).forEach(eventName => {
-            const [eventName2, passive] = eventName.split(':');
-            this._baseEventTarget.removeEventListener(eventName2, this._eventCache[eventName], { capture: true, passive: passive === 'passive' });
-        });
-        this._eventCache = {};
-        delegateCache.delete(this._baseEventTarget);
+        delegatorCache.delete(this._baseEventTarget);
     }
 }
 
 const delegate = baseEventTarget => {
-    if (!(typeof baseEventTarget.addEventListener === 'function')) {
+    if (!(baseEventTarget instanceof EventTarget)) {
         throw new TypeError(`${baseEventTarget} is not an EventTarget`);
     }
-    return delegateCache.get(baseEventTarget) || (() => {
+    return delegatorCache.get(baseEventTarget) || (() => {
         const delegator = new Delegate(baseEventTarget);
-        delegateCache.set(baseEventTarget, delegator);
+        delegatorCache.set(baseEventTarget, delegator);
         return delegator;
     })();
 };
