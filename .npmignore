@@ -1,2 +1,4 @@
-*.js
+karma.*
+rollup.*
+src/*.js
 test
