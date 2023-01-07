@@ -11,7 +11,7 @@ export default [
     {
         input: 'src/index.js',
         output: [
-            { file: 'dist/iife/delegate.js', format: 'iife', name: 'delegate' }
+            { file: 'dist/umd/delegate.js', format: 'umd', name: 'delegate' }
         ],
         plugins: [terser()]
     }

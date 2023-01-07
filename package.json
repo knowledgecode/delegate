@@ -1,8 +1,8 @@
 {
   "name": "@knowledgecode/delegate",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Event delegation library for the browser",
-  "main": "dist/iife/delegate.js",
+  "main": "dist/umd/delegate.js",
   "module": "dist/esm/delegate.js",
   "types": "src/index.d.ts",
   "scripts": {
