@@ -7,7 +7,7 @@ This is an event delegation library for the browser. The interface is similar to
 via npm:
 
 ```shell
-npm i knowledgecode@delegate
+npm i @knowledgecode/delegate
 ```
 
 ## Usage
