@@ -1,4 +1,4 @@
 karma.*
 rollup.*
-src/*.js
+src
 test
