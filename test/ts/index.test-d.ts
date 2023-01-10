@@ -1,5 +1,5 @@
 import { expectType } from 'tsd';
-import delegate, { Delegate } from '../../types/delegate';
+import delegate, { Delegate } from '../../src/index';
 
 expectType<Delegate>(delegate(document));
 
