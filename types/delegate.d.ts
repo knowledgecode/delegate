@@ -21,4 +21,4 @@ declare class Delegate {
     clear(): void
 }
 
-export default function (baseEventTarget: EventTarget): Delegate;
+export default function delegate(baseEventTarget: EventTarget): Delegate;

@@ -13,7 +13,7 @@ npm i @knowledgecode/delegate
 ## Usage
 
 ```javascript
-import delegate from 'knowledgecode@delegate';
+import delegate from '@knowledgecode/delegate';
 ```
 
 ES Modules:

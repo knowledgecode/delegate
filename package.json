@@ -1,10 +1,17 @@
 {
   "name": "@knowledgecode/delegate",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "Event delegation library for the browser",
-  "main": "dist/umd/delegate.js",
-  "module": "dist/esm/delegate.js",
-  "types": "src/index.d.ts",
+  "exports": {
+    "*": {
+      "types": "./types/delegate.d.ts",
+      "import": "./dist/esm/delegate.js",
+      "require": "./dist/umd/delegate.js"
+    }
+  },
+  "main": "./dist/umd/delegate.js",
+  "module": "./dist/esm/delegate.js",
+  "types": "./types/delegate.d.ts",
   "scripts": {
     "build": "rollup -c",
     "test": "npm run build && karma start",
