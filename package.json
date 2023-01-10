@@ -1,6 +1,6 @@
 {
   "name": "@knowledgecode/delegate",
-  "version": "0.6.5",
+  "version": "0.6.6",
   "description": "Event delegation library for the browser",
   "exports": {
     ".": {
@@ -32,7 +32,7 @@
   },
   "homepage": "https://github.com/knowledgecode/delegate#readme",
   "devDependencies": {
-    "@rollup/plugin-terser": "^0.2.1",
+    "@rollup/plugin-terser": "^0.3.0",
     "chai": "^4.3.7",
     "karma": "^6.4.1",
     "karma-chai": "^0.1.0",
