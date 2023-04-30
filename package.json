@@ -1,7 +1,8 @@
 {
   "name": "@knowledgecode/delegate",
-  "version": "0.6.6",
+  "version": "0.7.0",
   "description": "Event delegation library for the browser",
+  "type": "module",
   "exports": {
     ".": {
       "types": "./src/index.d.ts",
@@ -10,12 +11,11 @@
     }
   },
   "main": "dist/umd/delegate.js",
-  "module": "dist/esm/delegate.js",
   "types": "src/index.d.ts",
   "scripts": {
     "build": "rollup -c",
-    "test": "npm run build && karma start",
-    "test:ts": "tsd -f test/ts"
+    "test": "npx playwright install chromium && npx playwright test",
+    "test:ts": "tsd -f tests/ts"
   },
   "repository": {
     "type": "git",
@@ -32,15 +32,10 @@
   },
   "homepage": "https://github.com/knowledgecode/delegate#readme",
   "devDependencies": {
-    "@rollup/plugin-terser": "^0.3.0",
-    "chai": "^4.3.7",
-    "karma": "^6.4.1",
-    "karma-chai": "^0.1.0",
-    "karma-chrome-launcher": "^3.1.1",
-    "karma-mocha": "^2.0.1",
-    "karma-mocha-reporter": "^2.2.5",
-    "mocha": "^10.2.0",
-    "rollup": "^3.9.1",
-    "tsd": "^0.25.0"
+    "@playwright/test": "^1.33.0",
+    "@rollup/plugin-terser": "^0.4.1",
+    "http-server": "^14.1.1",
+    "rollup": "^3.21.2",
+    "tsd": "^0.28.1"
   }
 }
