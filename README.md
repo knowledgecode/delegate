@@ -1,5 +1,8 @@
 # Delegate
 
+[![build](https://github.com/knowledgecode/delegate/actions/workflows/node.js.yml/badge.svg)](https://github.com/knowledgecode/delegate/actions/workflows/node.js.yml)
+[![npm](https://img.shields.io/npm/v/@knowledgecode/delegate)](https://www.npmjs.com/package/@knowledgecode/delegate)
+
 This is an event delegation library for the browser. The interface is similar to that of `jQuery`, making it easy to learn.
 
 ## Installation
