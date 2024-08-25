@@ -1,6 +1,6 @@
 {
   "name": "@knowledgecode/delegate",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "Event delegation library for the browser",
   "type": "module",
   "exports": {
@@ -32,12 +32,12 @@
   },
   "homepage": "https://github.com/knowledgecode/delegate#readme",
   "devDependencies": {
-    "@playwright/test": "^1.43.1",
+    "@playwright/test": "^1.46.1",
     "@rollup/plugin-terser": "^0.4.4",
-    "eslint": "^9.2.0",
-    "globals": "^15.1.0",
+    "eslint": "^9.9.1",
+    "globals": "^15.9.0",
     "http-server": "^14.1.1",
-    "rollup": "^4.17.2",
-    "tsd": "^0.31.0"
+    "rollup": "^4.21.0",
+    "tsd": "^0.31.1"
   }
 }
