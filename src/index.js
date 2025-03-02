@@ -1,9 +1,20 @@
 /**
  * @preserve delegate (c) KNOWLEDGECODE | MIT
  */
+
+// @ts-check
+
+/**
+ * @type {WeakMap<EventTarget, Delegate>}
+ */
 const delegatorCache = new WeakMap();
 
 class DelegateEvent {
+  /**
+   * Creates a new delegate event wrapper.
+   * @param {Event} evt - The original event object
+   * @param {EventTarget} target - The current target for this event
+   */
   constructor (evt, target) {
     this.originalEvent = evt;
     this.stop = !evt.bubbles;
@@ -11,27 +22,67 @@ class DelegateEvent {
     this.currentTarget = target;
   }
 
+  /**
+   * Prevents the default action of the event.
+   */
   preventDefault () {
     this.originalEvent.preventDefault();
   }
 
+  /**
+   * Stops the propagation of the event.
+   */
   stopPropagation () {
     this.stop = true;
   }
 
+  /**
+   * Stops the immediate propagation of the event and prevents any further event handlers from being called.
+   */
   stopImmediatePropagation () {
     this.abort = this.stop = true;
   }
 }
 
+/**
+ * @typedef {Object} Subscriber
+ * @property {string} selector - CSS selector to match target elements
+ * @property {EventListener} handler - Event handler function to be executed when the selector matches
+ */
+
 class Delegate {
+  /**
+   * Creates a new delegate instance for the specified event target.
+   * @param {EventTarget} baseEventTarget - The base event target to attach event listeners to
+   */
   constructor (baseEventTarget) {
+    /**
+     * @type {EventTarget}
+     */
     this._baseEventTarget = baseEventTarget;
+
+    /**
+     * @type {Map<string, EventListener>}
+     */
     this._listenerCache = new Map();
+
+    /**
+     * @type {Map<string, Subscriber[]>}
+     */
     this._subscriberCache = new Map();
   }
 
+  /**
+   * Internal event listener function that handles event delegation.
+   * @param {boolean} passive - Whether the event is using passive mode
+   * @param {Event} evt - The original event object
+   */
   _listener (passive, evt) {
+    /**
+     * Recursive function to traverse up the DOM tree and call matching event handlers.
+     * @param {EventTarget} target - Current event target in the traversal
+     * @param {Subscriber[]} subsc - List of subscribers to check against
+     */
     const fn = (target, subsc) => {
       const evt2 = new DelegateEvent(evt, target);
       const subsc2 = subsc.filter(s => {
@@ -44,40 +95,51 @@ class Delegate {
           }
           return false;
         }
-        if (s.selector && target.matches(s.selector)) {
+        if (s.selector && /** @type {Element} */ (target).matches(s.selector)) {
           s.handler.call(target, evt2);
           return false;
         }
         return true;
       });
 
-      if (target.parentNode && subsc2.length && !evt2.stop) {
-        fn(target.parentNode, subsc2);
+      if (/** @type {Element} */ (target).parentNode && subsc2.length && !evt2.stop) {
+        fn(/** @type {Element} */ (target).parentNode, subsc2);
       }
     };
 
     fn(
-      evt.currentTarget === self ? self : evt.target,
+      /** @type {EventTarget} */ (evt.currentTarget === self ? self : evt.target),
       this._subscriberCache.get(`${evt.type}${passive ? ':passive' : ''}`) || []
     );
   }
 
   /**
-   * on
-   * @param {string} eventName - An event name
-   * @param {string|Function} selector - A selector to match | An event listener
-   * @param {Function} [handler] - An event listener
-   * @returns {Object} delegator
+   * Adds an event listener to the specified event with optional selector for delegation.
+   * @overload
+   * @param {string} eventName - Name of the event to listen for
+   * @param {string} selector - CSS selector to match target elements
+   * @param {EventListener} handler - Event handler function to be executed
+   * @returns {Delegate} Current delegate instance for chaining
+   *
+   * @overload
+   * @param {string} eventName - Name of the event to listen for
+   * @param {EventListener} handler - Event handler function to be executed
+   * @returns {Delegate} Current delegate instance for chaining
+   *
+   * @param {string} eventName - Name of the event to listen for
+   * @param {string | EventListener} selector - CSS selector or event handler function
+   * @param {EventListener} [handler] - Event handler function to be executed
+   * @returns {Delegate} Current delegate instance for chaining
    */
   on (eventName, selector, handler) {
     if (typeof selector === 'function') {
       handler = selector;
-      selector = null;
+      selector = '';
     }
 
     const subsc = this._subscriberCache.get(eventName) || [];
 
-    if (subsc.findIndex(s => s.selector === selector && s.handler === handler) < 0) {
+    if (handler && subsc.findIndex(s => s.selector === selector && s.handler === handler) < 0) {
       subsc.push({ selector, handler });
       if (!this._listenerCache.has(eventName)) {
         const [eventName2, passive] = eventName.split(':');
@@ -94,23 +156,46 @@ class Delegate {
   }
 
   /**
-   * off
-   * @param {string} [eventName] - An event name
-   * @param {string} [selector] - A selector to match | An event listener
-   * @param {Function} [handler] - An event listener
-   * @returns {Object} delegator
+   * Removes event listeners based on the specified parameters.
+   * @overload
+   * @returns {Delegate} Current delegate instance for chaining
+   *
+   * @overload
+   * @param {string} eventName - Name of the event to remove
+   * @returns {Delegate} Current delegate instance for chaining
+   *
+   * @overload
+   * @param {string} eventName - Name of the event to remove
+   * @param {string} selector - CSS selector to match target elements
+   * @returns {Delegate} Current delegate instance for chaining
+   *
+   * @overload
+   * @param {string} eventName - Name of the event to remove
+   * @param {string} selector - CSS selector to match target elements
+   * @param {EventListener} handler - Event handler function to remove
+   * @returns {Delegate} Current delegate instance for chaining
+   *
+   * @param {string} [eventName] - Name of the event to remove
+   * @param {string | EventListener} [selector] - CSS selector or event handler function
+   * @param {EventListener} [handler] - Event handler function to remove
+   * @returns {Delegate} Current delegate instance for chaining
    */
   off (eventName, selector, handler) {
     if (typeof selector === 'function') {
       handler = selector;
-      selector = null;
+      selector = '';
     }
 
+    /**
+     * Helper function to remove an event listener from the base event target.
+     * @param {EventListener} _listener - The listener function to remove
+     * @param {string} _eventName - The event name to remove the listener from
+     */
     const removeEventListener = (_listener, _eventName) => {
-      const [eventName2, passive] = _eventName.split(':');
+      const [eventName2] = _eventName.split(':');
 
       this._baseEventTarget.removeEventListener(
-        eventName2, _listener, { capture: true, passive: passive === 'passive' }
+        eventName2, _listener, { capture: true }
       );
     };
 
@@ -139,22 +224,42 @@ class Delegate {
   }
 
   /**
-   * one
-   * @param {string} eventName - An event name
-   * @param {string|Function} selector - A selector to match | An event listener, which is fired only once.
-   * @param {Function} [handler] - An event listener, which is fired only once.
-   * @returns {Object} delegator
+   * Adds a one-time event listener that will be automatically removed after execution.
+   * @overload
+   * @param {string} eventName - Name of the event to listen for
+   * @param {string} selector - CSS selector to match target elements
+   * @param {EventListener} handler - Event handler function to be executed once
+   * @returns {Delegate} Current delegate instance for chaining
+   *
+   * @overload
+   * @param {string} eventName - Name of the event to listen for
+   * @param {EventListener} handler - Event handler function to be executed once
+   * @returns {Delegate} Current delegate instance for chaining
+   *
+   * @param {string} eventName - Name of the event to listen for
+   * @param {string | EventListener} selector - CSS selector or event handler function
+   * @param {EventListener} [handler] - Event handler function to be executed once
+   * @returns {Delegate} Current delegate instance for chaining
    */
   one (eventName, selector, handler) {
+    if (typeof selector === 'function') {
+      handler = selector;
+      selector = '';
+    }
+
+    /**
+     * @type {EventListener}
+     */
     const handler2 = evt => {
-      this.off(eventName, selector || null, handler2);
-      handler.call(handler, evt);
+      this.off(eventName, selector, handler2);
+      handler?.call(evt.currentTarget, evt);
     };
-    return this.on(eventName, selector || null, handler2);
+
+    return this.on(eventName, selector, handler2);
   }
 
   /**
-   * clear
+   * Clears all event listeners and removes the delegator from cache.
    * @returns {void}
    */
   clear () {
@@ -163,6 +268,12 @@ class Delegate {
   }
 }
 
+/**
+ * Creates or retrieves a delegate instance for the specified event target.
+ * @param {EventTarget} baseEventTarget - The base event target to attach event listeners to
+ * @returns {Delegate} A delegate instance for the specified event target
+ * @throws {TypeError} If the baseEventTarget is not an instance of EventTarget
+ */
 const delegate = baseEventTarget => {
   if (!(baseEventTarget instanceof EventTarget)) {
     throw new TypeError(`${baseEventTarget} is not an EventTarget`);
