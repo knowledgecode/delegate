@@ -1,6 +1,6 @@
 {
   "name": "@knowledgecode/delegate",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "description": "Event delegation library for the browser",
   "type": "module",
   "exports": {
@@ -14,6 +14,7 @@
   "types": "src/index.d.ts",
   "scripts": {
     "build": "rollup -c",
+    "lint": "eslint src/index.js",
     "test": "npx playwright install chromium && npx playwright test",
     "test:ts": "tsd -f tests/ts"
   },
@@ -32,12 +33,12 @@
   },
   "homepage": "https://github.com/knowledgecode/delegate#readme",
   "devDependencies": {
-    "@playwright/test": "^1.46.1",
+    "@playwright/test": "^1.50.1",
     "@rollup/plugin-terser": "^0.4.4",
-    "eslint": "^9.9.1",
-    "globals": "^15.9.0",
+    "eslint": "^9.21.0",
+    "globals": "^16.0.0",
     "http-server": "^14.1.1",
-    "rollup": "^4.21.0",
-    "tsd": "^0.31.1"
+    "rollup": "^4.34.9",
+    "tsd": "^0.31.2"
   }
 }
