@@ -1,3 +1,5 @@
-dist
-node_modules
-test-results
+CLAUDE.md
+dist/
+examples/
+index.html
+node_modules/
