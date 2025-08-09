@@ -1,7 +1,0 @@
-.editorconfig
-.github
-eslint.*
-playwright.*
-rollup.*
-src/*.js
-tests

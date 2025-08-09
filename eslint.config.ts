@@ -1,15 +1,30 @@
+import tseslint from 'typescript-eslint';
 import globals from 'globals';
 
-export default [
+export default tseslint.config(
   {
+    ignores: ['dist']
+  },
+  ...tseslint.configs.strict,
+  ...tseslint.configs.stylistic,
+  {
+    files: ['src/**/*.ts'],
     languageOptions: {
-      ecmaVersion: 2020,
+      ecmaVersion: 2015,
       sourceType: 'module',
       globals: {
-        ...globals.browser
+        ...globals.browser,
+        ...globals.node
+      },
+      parserOptions: {
+        project: './tsconfig.json'
       }
     },
     rules: {
+      '@typescript-eslint/no-extraneous-class': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', { 'caughtErrors': 'none' }],
+      '@typescript-eslint/unified-signatures': ['error', { 'ignoreDifferentlyNamedParameters': true }],
+      'array-bracket-spacing': ['warn', 'never'],
       'array-callback-return': 'error',
       'constructor-super': 'error',
       'for-direction': 'error',
@@ -29,7 +44,6 @@ export default [
       'no-dupe-else-if': 'error',
       'no-dupe-keys': 'error',
       'no-duplicate-case': 'error',
-      'no-duplicate-imports': 'error',
       'no-empty-character-class': 'error',
       'no-empty-pattern': 'error',
       'no-ex-assign': 'error',
@@ -59,7 +73,6 @@ export default [
       'no-unsafe-negation': 'error',
       'no-unsafe-optional-chaining': 'error',
       'no-unused-private-class-members': 'error',
-      'no-unused-vars': 'error',
       'no-use-before-define': 'error',
       'no-useless-backreference': 'error',
       'require-atomic-updates': 'error',
@@ -71,9 +84,9 @@ export default [
       'curly': 'error',
       'default-case-last': 'error',
       'dot-notation': 'error',
-      'eqeqeq': 'error',
+      'eqeqeq': ['error', 'smart'],
       'func-name-matching': 'error',
-      'func-style': 'error',
+      'func-style': ['error', 'expression', { 'overrides': { 'namedExports': 'ignore' } }],
       'grouped-accessor-pairs': 'error',
       'id-denylist': 'error',
       'id-match': 'error',
@@ -86,7 +99,6 @@ export default [
       'no-div-regex': 'error',
       'no-else-return': 'error',
       'no-empty-static-block': 'error',
-      'no-eq-null': 'error',
       'no-eval': 'error',
       'no-extend-native': 'error',
       'no-extra-bind': 'error',
@@ -103,7 +115,7 @@ export default [
       'no-lone-blocks': 'error',
       'no-lonely-if': 'error',
       'no-loop-func': 'error',
-      'no-multi-assign': ['error', { 'ignoreNonDeclaration': true } ],
+      'no-multi-assign': ['error', { 'ignoreNonDeclaration': true }],
       'no-multi-str': 'error',
       'no-negated-condition': 'error',
       'no-new': 'error',
@@ -114,7 +126,6 @@ export default [
       'no-octal': 'error',
       'no-octal-escape': 'error',
       'no-proto': 'error',
-      'no-redeclare': 'error',
       'no-regex-spaces': 'error',
       'no-restricted-exports': 'error',
       'no-restricted-globals': 'error',
@@ -148,7 +159,7 @@ export default [
       'prefer-numeric-literals': 'error',
       'prefer-object-has-own': 'error',
       'prefer-object-spread': 'error',
-      'prefer-promise-reject-errors': ['error', { 'allowEmptyReject': true } ],
+      'prefer-promise-reject-errors': ['error', { 'allowEmptyReject': true }],
       'prefer-regex-literals': 'error',
       'prefer-rest-params': 'error',
       'prefer-spread': 'error',
@@ -163,34 +174,34 @@ export default [
       'comma-spacing': 'warn',
       'comma-style': 'warn',
       'computed-property-spacing': 'warn',
-      'dot-location': [ 'warn', 'property' ],
+      'dot-location': ['warn', 'property'],
       'eol-last': 'warn',
       'func-call-spacing': 'warn',
       'generator-star-spacing': 'warn',
       'implicit-arrow-linebreak': 'warn',
-      'indent': [ 'warn', 2, { 'ignoreComments': true } ],
+      'indent': ['warn', 2, { 'ignoreComments': true }],
       'jsx-quotes': 'warn',
       'key-spacing': 'warn',
       'keyword-spacing': 'warn',
       'linebreak-style': 'warn',
       'lines-between-class-members': 'warn',
       'new-parens': 'warn',
-      'no-extra-parens': [ 'warn', 'functions' ],
+      'no-extra-parens': ['warn', 'functions'],
       'no-mixed-spaces-and-tabs': 'warn',
-      'no-multi-spaces': [ 'warn', { 'ignoreEOLComments': true } ],
+      'no-multi-spaces': ['warn', { 'ignoreEOLComments': true }],
       'no-tabs': 'warn',
       'no-trailing-spaces': 'warn',
       'no-whitespace-before-property': 'warn',
       'nonblock-statement-body-position': 'warn',
       'object-curly-newline': 'warn',
+      'object-curly-spacing': ['warn', 'always'],
       'padding-line-between-statements': 'warn',
-      'quotes': [ 'warn', 'single' ],
+      'quotes': ['warn', 'single'],
       'rest-spread-spacing': 'warn',
       'semi': 'warn',
       'semi-spacing': 'warn',
       'semi-style': 'warn',
       'space-before-blocks': 'warn',
-      'space-before-function-paren': 'warn',
       'space-in-parens': 'warn',
       'space-infix-ops': 'warn',
       'space-unary-ops': 'warn',
@@ -198,8 +209,8 @@ export default [
       'template-curly-spacing': 'warn',
       'template-tag-spacing': 'warn',
       'unicode-bom': 'warn',
-      'wrap-iife': [ 'warn', 'any' ],
+      'wrap-iife': ['warn', 'any'],
       'yield-star-spacing': 'warn'
     }
   }
-];
+);
