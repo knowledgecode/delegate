@@ -1,17 +1,18 @@
 import { defineConfig } from 'vite';
+import dts from 'vite-plugin-dts';
 import terser from '@rollup/plugin-terser';
 import license from 'rollup-plugin-license';
 
 export default defineConfig({
   build: {
+    minify: false,
     lib: {
       entry: 'src/index.ts',
-      formats: ['es']
+      formats: ['es'],
+      fileName: 'index.js'
     },
-    outDir: 'dist',
     rollupOptions: {
       output: {
-        entryFileNames: 'index.js',
         plugins: [
           terser(),
           license({
@@ -20,5 +21,8 @@ export default defineConfig({
         ]
       }
     }
-  }
+  },
+  plugins: [
+    dts()
+  ]
 });
