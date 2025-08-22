@@ -3,7 +3,17 @@
 [![build](https://github.com/knowledgecode/delegate/actions/workflows/ci.yml/badge.svg)](https://github.com/knowledgecode/delegate/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@knowledgecode/delegate)](https://www.npmjs.com/package/@knowledgecode/delegate)
 
-An event delegation library with support for Web Components.
+Event delegation library with support for Web Components.
+
+## Features
+
+- **🎯 Event Delegation**: Efficient event handling with automatic bubbling capture
+- **🌐 Web Components Support**: Shadow DOM traversal with `>>` selector syntax
+- **⚙️  Passive Listeners**: Support for passive event listeners with `:passive` syntax
+- **⚡ Performance Utilities**: Built-in debounce and throttle functions
+- **🔗 jQuery-like API**: Familiar method chaining interface for easy adoption
+- **💾 Memory Efficient**: WeakMap-based caching prevents memory leaks
+- **📦 TypeScript Native**: Full TypeScript support with comprehensive type definitions
 
 ## Notice
 
