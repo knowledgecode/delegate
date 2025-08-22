@@ -1,5 +1,4 @@
 import tseslint from 'typescript-eslint';
-import globals from 'globals';
 
 export default tseslint.config(
   {
@@ -13,8 +12,7 @@ export default tseslint.config(
       ecmaVersion: 2015,
       sourceType: 'module',
       globals: {
-        ...globals.browser,
-        ...globals.node
+        self: 'readonly'
       },
       parserOptions: {
         project: './tsconfig.json'
