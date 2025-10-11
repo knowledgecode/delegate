@@ -1,11 +1,12 @@
+import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
-export default tseslint.config(
+export default defineConfig(
   {
     ignores: ['dist']
   },
-  ...tseslint.configs.strict,
-  ...tseslint.configs.stylistic,
+  tseslint.configs.strict,
+  tseslint.configs.stylistic,
   {
     files: ['src/**/*.ts'],
     languageOptions: {
