@@ -73,7 +73,7 @@ const getParentNode = (target: EventTarget | null): EventTarget | null => {
     : null;
 };
 
-class Delegate {
+export class Delegate {
   private readonly baseEventTarget: EventTarget;
 
   private readonly listenerCache: Map<string, EventListener>;
