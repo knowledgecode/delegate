@@ -13,7 +13,6 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        entryFileNames: 'index.js',
         plugins: [
           terser(),
           license({
