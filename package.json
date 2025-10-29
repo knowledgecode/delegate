@@ -1,6 +1,6 @@
 {
   "name": "@knowledgecode/delegate",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "description": "Event delegation library with support for Web Components.",
   "keywords": [
     "event",
@@ -47,13 +47,13 @@
   },
   "devDependencies": {
     "@rollup/plugin-terser": "^0.4.4",
-    "@vitest/browser-playwright": "^4.0.3",
+    "@vitest/browser-playwright": "^4.0.4",
     "eslint": "^9.38.0",
     "lit": "^3.3.1",
     "rollup-plugin-license": "^3.6.0",
     "typescript-eslint": "^8.46.2",
     "vite": "^7.1.12",
     "vite-plugin-dts": "^4.5.4",
-    "vitest": "^4.0.3"
+    "vitest": "^4.0.4"
   }
 }
