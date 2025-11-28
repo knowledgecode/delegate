@@ -245,18 +245,20 @@ delegate(document)
   });
 ```
 
-### `originalEvent`
+### `nativeEvent`
 
-The `Event` object of the triggered event.
+The native `Event` object of the triggered event.
 
 ```typescript
 delegate(document)
   .on('mousedown', '#area', evt => {
-    if (evt.originalEvent.pageX < 48 && evt.originalEvent.pageY < 48) {
+    if (evt.nativeEvent.pageX < 48 && evt.nativeEvent.pageY < 48) {
       alert('Shoot!');
     }
   });
 ```
+
+> **Note**: The `originalEvent` property is deprecated. Please use `nativeEvent` instead. The `originalEvent` property is still available for backward compatibility but will be removed in a future version.
 
 ### `currentTarget`
 
@@ -414,7 +416,7 @@ export class MyComponent extends LitElement {
       .on('change', '.check', evt => {
         // Propagate events that don't pierce Shadow DOM boundaries by default
         // This is not needed for events like click that pierce Shadow DOM boundaries by default
-        dispatch(this, evt.originalEvent.type, evt);
+        dispatch(this, evt.nativeEvent.type, evt);
       })
   }
 
