@@ -1,15 +1,20 @@
 interface CustomEventDetail {
-  originalEvent: Event;
+  nativeEvent: Event;
   target: EventTarget | null;
   data: unknown;
 }
 
 export const isCustomEventDetail = (detail: unknown): detail is CustomEventDetail => {
-  return typeof detail === 'object' && detail !== null && 'originalEvent' in detail && 'target' in detail;
+  return typeof detail === 'object' && detail !== null && 'nativeEvent' in detail && 'target' in detail;
 };
 
 export class DelegateEvent {
+  /**
+   * @deprecated Use `nativeEvent` instead.
+   */
   public readonly originalEvent: Event;
+
+  public readonly nativeEvent: Event;
 
   public readonly currentTarget: EventTarget | null;
 
@@ -25,16 +30,18 @@ export class DelegateEvent {
 
   /**
    * Creates a new DelegateEvent instance.
-   * @param evt - The original event that was triggered.
+   * @param evt - The event object that was triggered.
    * @param target - The target element that the event was delegated to.
    */
   constructor (evt: Event, target: EventTarget | null) {
     if (evt instanceof CustomEvent && isCustomEventDetail(evt.detail)) {
-      this.originalEvent = evt.detail.originalEvent;
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      this.originalEvent = this.nativeEvent = evt.detail.nativeEvent;
       this.target = evt.detail.target;
       this.detail = evt.detail.data;
     } else {
-      this.originalEvent = evt;
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      this.originalEvent = this.nativeEvent = evt;
       this.target = evt.composedPath()[0];
       if (evt instanceof CustomEvent) {
         this.detail = evt.detail;
@@ -50,7 +57,7 @@ export class DelegateEvent {
    * Prevents the default action of the event.
    */
   preventDefault () {
-    this.originalEvent.preventDefault();
+    this.nativeEvent.preventDefault();
   }
 
   /**
