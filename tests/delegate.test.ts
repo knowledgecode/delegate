@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { delegate } from '../src/index.ts';
+import { delegate, DelegateEvent } from '../src/index.ts';
 
 describe('delegate', () => {
   it('should handle click events with selector', async () => {
     const result = new Promise(resolve => {
       delegate(document).on('click', '.div1', evt => {
-        resolve(evt.originalEvent.type);
+        resolve(evt.nativeEvent.type);
       });
     });
 
@@ -17,7 +17,7 @@ describe('delegate', () => {
   it('should handle click events without selector', async () => {
     const result = new Promise(resolve => {
       delegate(document.body).on('click', evt => {
-        resolve(evt.originalEvent.type);
+        resolve(evt.nativeEvent.type);
       });
     });
 
@@ -31,7 +31,7 @@ describe('delegate', () => {
       const iframe = document.createElement('iframe');
 
       delegate(iframe).on('load', evt => {
-        resolve(evt.originalEvent.type);
+        resolve(evt.nativeEvent.type);
       });
       iframe.src = 'data:text/html,<html><body>test</body></html>';
       document.body.appendChild(iframe);
@@ -131,9 +131,9 @@ describe('delegate', () => {
     expect(result.counter).toBe(0);
   });
 
-  it('should handle preventDefault correctly', async () => {
+  it('should handle preventDefault correctly', () => {
     const result = { counter: 0 };
-    const handler1 = evt => {
+    const handler1 = (evt: DelegateEvent) => {
       evt.preventDefault();
       result.counter++;
     };
@@ -150,7 +150,7 @@ describe('delegate', () => {
 
   it('should handle stopPropagation correctly', () => {
     const result = { counter: 0 };
-    const handler1 = (evt) => {
+    const handler1 = (evt: DelegateEvent) => {
       evt.stopPropagation();
       result.counter++;
     };
@@ -167,7 +167,7 @@ describe('delegate', () => {
 
   it('should handle stopImmediatePropagation correctly', () => {
     const result = { counter: 0 };
-    const handler1 = (evt) => {
+    const handler1 = (evt: DelegateEvent) => {
       evt.stopImmediatePropagation();
       result.counter++;
     };

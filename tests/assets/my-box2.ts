@@ -10,8 +10,8 @@ export class MyBox extends LitElement {
 
     delegate(this.renderRoot)
       .on('change', '.check2', evt => {
-        dispatch(this, evt.originalEvent.type, evt);
-      })
+        dispatch(this, evt.nativeEvent.type, evt);
+      });
   }
 
   disconnectedCallback(): void {

@@ -93,7 +93,7 @@ export class Delegate {
   /**
    * Internal event listener function that handles event delegation.
    * @param passive - Whether the event is using passive mode
-   * @param evt - The original event object
+   * @param evt - The native event object
    */
   private listener (passive: boolean, evt: Event) {
     /**
@@ -133,7 +133,7 @@ export class Delegate {
       }
     };
 
-    const subsc = this.subscriberCache.get(`${evt.type}${passive ? ':passive' : ''}`) || [];
+    const subsc = this.subscriberCache.get(`${evt.type}${passive ? ':passive' : ''}`) ?? [];
 
     if (subsc.length) {
       const target = extractTarget(evt);
@@ -172,7 +172,7 @@ export class Delegate {
       selector = '';
     }
 
-    const subsc = this.subscriberCache.get(eventName) || [];
+    const subsc = this.subscriberCache.get(eventName) ?? [];
 
     if (handler && subsc.findIndex(s => s.selector === selector && s.handler === handler) < 0) {
       subsc.push({ selector: parseSelector(selector), handler });
@@ -276,7 +276,7 @@ export class Delegate {
       // - If selector is specified, keep subscribers with different selectors
       // - If handler is specified, keep subscribers with different handlers
       // - If both are specified, keep subscribers that differ in either selector or handler
-      const subsc = (this.subscriberCache.get(eventName) || [])
+      const subsc = (this.subscriberCache.get(eventName) ?? [])
         .filter(s => selector !== undefined && s.selector !== selector || handler && s.handler !== handler);
 
       if (subsc.length) {
@@ -318,7 +318,7 @@ export const delegate = (baseEventTarget: EventTarget) => {
   if (!(baseEventTarget instanceof EventTarget)) {
     throw new TypeError(`${baseEventTarget} is not an EventTarget`);
   }
-  return delegatorCache.get(baseEventTarget) || (() => {
+  return delegatorCache.get(baseEventTarget) ?? (() => {
     const delegator = new Delegate(baseEventTarget);
     delegatorCache.set(baseEventTarget, delegator);
     return delegator;
