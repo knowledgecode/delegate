@@ -1,3 +1,4 @@
+import { resolve } from 'path';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 import terser from '@rollup/plugin-terser';
@@ -14,15 +15,22 @@ export default defineConfig({
     rollupOptions: {
       output: {
         plugins: [
-          terser(),
           license({
             banner: '@license\nCopyright 2019 KNOWLEDGECODE\nSPDX-License-Identifier: MIT'
-          })
+          }),
+          terser()
         ]
       }
     }
   },
   plugins: [
-    dts()
-  ]
+    dts({
+      include: ['src/**/*']
+    })
+  ],
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, './src')
+    }
+  }
 });

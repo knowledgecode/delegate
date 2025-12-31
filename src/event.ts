@@ -1,27 +1,47 @@
-interface CustomEventDetail {
+export interface DetailObject {
   nativeEvent: Event;
   target: EventTarget | null;
   data: unknown;
 }
 
-export const isCustomEventDetail = (detail: unknown): detail is CustomEventDetail => {
+/**
+ * Type guard to check if the detail is a DetailObject.
+ * @param detail - The detail to check.
+ * @returns True if the detail is a DetailObject, false otherwise.
+ */
+export const isDetailObject = (detail: unknown): detail is DetailObject => {
   return typeof detail === 'object' && detail !== null && 'nativeEvent' in detail && 'target' in detail;
 };
 
-export class DelegateEvent {
+export class DelegateEvent<T extends Event = Event> {
   /**
    * @deprecated Use `nativeEvent` instead.
    */
-  public readonly originalEvent: Event;
+  public readonly originalEvent: T;
 
-  public readonly nativeEvent: Event;
+  /**
+   * The native event object.
+   */
+  public readonly nativeEvent: T;
 
+  /**
+   * The current target of the event.
+   */
   public readonly currentTarget: EventTarget | null;
 
+  /**
+   * The delegate target of the event.
+   */
   public readonly delegateTarget: EventTarget | null;
 
+  /**
+   * The original target of the event.
+   */
   public readonly target: EventTarget | null;
 
+  /**
+   * The detail data associated with the event.
+   */
   public readonly detail: unknown;
 
   private _stop: boolean;
@@ -30,26 +50,26 @@ export class DelegateEvent {
 
   /**
    * Creates a new DelegateEvent instance.
-   * @param evt - The event object that was triggered.
-   * @param target - The target element that the event was delegated to.
+   * @param ev - The event object that was triggered
+   * @param delegateTarget - The delegate target associated with the event.
    */
-  constructor (evt: Event, target: EventTarget | null) {
-    if (evt instanceof CustomEvent && isCustomEventDetail(evt.detail)) {
+  constructor (ev: T, delegateTarget: EventTarget | null) {
+    if (ev instanceof CustomEvent && isDetailObject(ev.detail)) {
       // eslint-disable-next-line @typescript-eslint/no-deprecated
-      this.originalEvent = this.nativeEvent = evt.detail.nativeEvent;
-      this.target = evt.detail.target;
-      this.detail = evt.detail.data;
+      this.originalEvent = this.nativeEvent = ev.detail.nativeEvent as T;
+      this.target = ev.detail.target;
+      this.detail = ev.detail.data;
     } else {
       // eslint-disable-next-line @typescript-eslint/no-deprecated
-      this.originalEvent = this.nativeEvent = evt;
-      this.target = evt.composedPath()[0];
-      if (evt instanceof CustomEvent) {
-        this.detail = evt.detail;
+      this.originalEvent = this.nativeEvent = ev;
+      this.target = ev.composedPath()[0] ?? ev.target;
+      if (ev instanceof CustomEvent) {
+        this.detail = ev.detail;
       }
     }
-    this.currentTarget = evt.currentTarget;
-    this.delegateTarget = target;
-    this._stop = !evt.bubbles;
+    this.currentTarget = ev.currentTarget;
+    this.delegateTarget = delegateTarget;
+    this._stop = !ev.bubbles;
     this._abort = false;
   }
 
