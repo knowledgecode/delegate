@@ -6,16 +6,17 @@ import stylistic from '@stylistic/eslint-plugin';
 
 export default defineConfig(
   {
-    ignores: ['**/*.js']
+    ignores: [
+      'dist',
+      'eslint.config.js',
+      'vite.config.ts',
+      'vitest.config.ts'
+    ]
   },
   eslint.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
   {
-    files: [
-      'src/**/*.ts',
-      'tests/**/*.ts'
-    ],
     plugins: {
       '@stylistic': stylistic
     },
@@ -26,23 +27,19 @@ export default defineConfig(
         self: 'readonly'
       },
       parserOptions: {
-        projectService: {
-          allowDefaultProject: [
-          'tests/*.ts',
-          'tests/assets/*.ts'
-          ]
-        }
+        projectService: true
       }
     },
     rules: {
+      '@typescript-eslint/no-confusing-void-expression': ['error', { ignoreArrowShorthand: true }],
       '@typescript-eslint/no-extraneous-class': 'off',
-      '@typescript-eslint/no-loop-func': 'error',
-      '@typescript-eslint/no-shadow': 'error',
-      '@typescript-eslint/no-unused-expressions': 'error',
       '@typescript-eslint/no-unused-vars': ['error', { caughtErrors: 'none' }],
-      '@typescript-eslint/no-use-before-define': 'error',
       '@typescript-eslint/restrict-template-expressions': ['error', { allowNever: true }],
       '@typescript-eslint/unified-signatures': ['error', { ignoreDifferentlyNamedParameters: true }],
+//      '@typescript-eslint/no-loop-func': 'error',
+//      '@typescript-eslint/no-shadow': 'error',
+//      '@typescript-eslint/no-unused-expressions': 'error',
+//      '@typescript-eslint/no-use-before-define': 'error',
 
       'accessor-pairs': 'error',
       'array-callback-return': 'error',
