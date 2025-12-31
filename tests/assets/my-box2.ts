@@ -1,7 +1,7 @@
 import { LitElement, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 
-import { delegate, dispatch } from '../../src/index.ts';
+import { delegate, pierce } from '@/index.ts';
 
 @customElement('my-box2')
 export class MyBox extends LitElement {
@@ -10,7 +10,7 @@ export class MyBox extends LitElement {
 
     delegate(this.renderRoot)
       .on('change', '.check2', evt => {
-        dispatch(this, evt.nativeEvent.type, evt);
+        pierce(this, evt);
       });
   }
 
