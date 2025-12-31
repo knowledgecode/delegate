@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { delegate, DelegateEvent } from '../src/index.ts';
+import { describe, it, expect, vi } from 'vitest';
+import { delegate, DelegateEvent, debounce, throttle, pierce } from '@/index.ts';
 
 describe('delegate', () => {
   it('should handle click events with selector', async () => {
@@ -212,5 +212,351 @@ describe('delegate', () => {
       ?.shadowRoot?.querySelector<HTMLInputElement>('input[type="checkbox"]')?.click();
 
     expect(result.counter).toBe(2);
+  });
+
+  it('should handle passive event listeners', () => {
+    const result = { counter: 0 };
+    const handler = () => result.counter++;
+
+    delegate(document).on('touchstart:passive', '.div1', handler);
+
+    const touchEvent = new TouchEvent('touchstart', { bubbles: true, cancelable: true });
+    document.querySelector<HTMLElement>('.div1')?.dispatchEvent(touchEvent);
+
+    expect(result.counter).toBe(1);
+  });
+
+  it('should throw TypeError for invalid baseTarget', () => {
+    expect(() => {
+      // @ts-expect-error Testing invalid input
+      delegate(null);
+    }).toThrow(TypeError);
+
+    expect(() => {
+      // @ts-expect-error Testing invalid input
+      delegate({});
+    }).toThrow(TypeError);
+  });
+
+  it('should throw SyntaxError for invalid selector in on()', () => {
+    expect(() => {
+      delegate(document).on('click', '>>>invalid', () => {
+        // Empty handler for testing
+      });
+    }).toThrow(SyntaxError);
+  });
+
+  it('should throw SyntaxError for invalid selector in off()', () => {
+    expect(() => {
+      delegate(document).off('click', '>>>invalid');
+    }).toThrow(SyntaxError);
+  });
+
+  it('should reuse cached delegate instance', () => {
+    const delegator1 = delegate(document);
+    const delegator2 = delegate(document);
+
+    expect(delegator1).toBe(delegator2);
+  });
+
+  it('should clear all event listeners and remove from cache', () => {
+    const result = { counter: 0 };
+    const handler = () => result.counter++;
+
+    const delegator1 = delegate(document.body);
+    delegator1.on('click', '.div1', handler);
+    delegator1.clear();
+
+    // After clear, a new delegator should be created
+    const delegator2 = delegate(document.body);
+    expect(delegator1).not.toBe(delegator2);
+
+    // Event handlers should not fire after clear
+    document.querySelector<HTMLElement>('.div1')?.click();
+    expect(result.counter).toBe(0);
+  });
+
+  it('should expose originalEvent property (deprecated)', async () => {
+    const result = new Promise(resolve => {
+      delegate(document).on('click', '.div1', evt => {
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
+        resolve(evt.originalEvent.type);
+      });
+    });
+
+    document.querySelector<HTMLElement>('.div1')?.click();
+
+    expect(await result).toBe('click');
+  });
+
+  it('should expose stop and abort getters', async () => {
+    const result = new Promise<{ stop: boolean; abort: boolean }>(resolve => {
+      delegate(document).on('click', '.div1', evt => {
+        evt.stopPropagation();
+        resolve({ stop: evt.stop, abort: evt.abort });
+      });
+    });
+
+    document.querySelector<HTMLElement>('.div1')?.click();
+
+    const { stop, abort } = await result;
+    expect(stop).toBe(true);
+    expect(abort).toBe(false);
+  });
+
+  it('should set abort flag on stopImmediatePropagation', async () => {
+    const result = new Promise<{ stop: boolean; abort: boolean }>(resolve => {
+      delegate(document).on('click', '.div1', evt => {
+        evt.stopImmediatePropagation();
+        resolve({ stop: evt.stop, abort: evt.abort });
+      });
+    });
+
+    document.querySelector<HTMLElement>('.div1')?.click();
+
+    const { stop, abort } = await result;
+    expect(stop).toBe(true);
+    expect(abort).toBe(true);
+  });
+
+  it('should handle CustomEvent with detail', async () => {
+    const testData = { message: 'test data' };
+    const result = new Promise(resolve => {
+      delegate(document).on('custom-event', '.div1', evt => {
+        resolve(evt.detail);
+      });
+    });
+
+    const customEvent = new CustomEvent('custom-event', {
+      bubbles: true,
+      detail: testData
+    });
+    document.querySelector<HTMLElement>('.div1')?.dispatchEvent(customEvent);
+
+    expect(await result).toEqual(testData);
+  });
+});
+
+describe('pierce', () => {
+  it('should pierce event through shadow DOM boundary', async () => {
+    const testData = { pierced: true };
+    const box1 = document.querySelector<HTMLElement>('.box1');
+
+    if (!box1) {
+      throw new Error('Element not available');
+    }
+
+    const result = new Promise<unknown>(resolve => {
+      box1.addEventListener('click', (evt) => {
+        if (evt instanceof CustomEvent) {
+          resolve((evt.detail as { data: unknown }).data);
+        }
+      });
+    });
+
+    const clickEvent = new MouseEvent('click', { bubbles: true });
+    pierce(box1, clickEvent, testData);
+
+    expect(await result).toEqual(testData);
+  });
+
+  it('should preserve event type when piercing', async () => {
+    const box1 = document.querySelector<HTMLElement>('.box1');
+
+    if (!box1) {
+      throw new Error('Element not available');
+    }
+
+    const result = new Promise<string>(resolve => {
+      box1.addEventListener('mousedown', (evt) => {
+        resolve(evt.type);
+      });
+    });
+
+    const mouseEvent = new MouseEvent('mousedown', { bubbles: true });
+    pierce(box1, mouseEvent);
+
+    expect(await result).toBe('mousedown');
+  });
+
+  it('should extract event type from DelegateEvent', () => {
+    const box1 = document.querySelector<HTMLElement>('.box1');
+
+    if (!box1) {
+      throw new Error('Element not available');
+    }
+
+    let eventType = '';
+    box1.addEventListener('test-event', (evt) => {
+      eventType = evt.type;
+    });
+
+    const nativeEvent = new MouseEvent('test-event', { bubbles: true });
+    const delegateEvent = new DelegateEvent(nativeEvent, box1);
+
+    pierce(box1, delegateEvent);
+
+    expect(eventType).toBe('test-event');
+  });
+});
+
+describe('debounce', () => {
+  it('should debounce function calls', () => {
+    vi.useFakeTimers();
+    const result = { counter: 0, lastValue: '' };
+    const handler = debounce((ev: Event) => {
+      result.counter++;
+      result.lastValue = ev.type;
+    }, 100);
+
+    const event1 = new Event('input');
+    const event2 = new Event('input');
+    const event3 = new Event('input');
+
+    handler(event1);
+    handler(event2);
+    handler(event3);
+
+    // Should not execute immediately
+    expect(result.counter).toBe(0);
+
+    // Fast forward time
+    vi.advanceTimersByTime(100);
+
+    // Should execute only once with the last event
+    expect(result.counter).toBe(1);
+    expect(result.lastValue).toBe('input');
+
+    vi.useRealTimers();
+  });
+
+  it('should reset debounce timer on subsequent calls', () => {
+    vi.useFakeTimers();
+    const result = { counter: 0 };
+    const handler = debounce(() => {
+      result.counter++;
+    }, 100);
+
+    const event = new Event('input');
+
+    handler(event);
+    vi.advanceTimersByTime(50);
+    handler(event);
+    vi.advanceTimersByTime(50);
+    handler(event);
+    vi.advanceTimersByTime(50);
+
+    // Should not execute yet
+    expect(result.counter).toBe(0);
+
+    vi.advanceTimersByTime(50);
+
+    // Should execute once
+    expect(result.counter).toBe(1);
+
+    vi.useRealTimers();
+  });
+
+  it('should preserve this context in debounced function', () => {
+    vi.useFakeTimers();
+    const context = { value: 42, result: 0 };
+    const handler = debounce(function (this: typeof context) {
+      this.result = this.value;
+    }, 100);
+
+    const event = new Event('test');
+    handler.call(context, event);
+
+    vi.advanceTimersByTime(100);
+
+    expect(context.result).toBe(42);
+
+    vi.useRealTimers();
+  });
+});
+
+describe('throttle', () => {
+  it('should throttle function calls', () => {
+    vi.useFakeTimers();
+    const result = { counter: 0 };
+    const handler = throttle(() => {
+      result.counter++;
+    }, 100);
+
+    const event = new Event('scroll');
+
+    handler(event);
+    expect(result.counter).toBe(1);
+
+    handler(event);
+    handler(event);
+    expect(result.counter).toBe(1);
+
+    vi.advanceTimersByTime(100);
+    handler(event);
+    expect(result.counter).toBe(2);
+
+    vi.useRealTimers();
+  });
+
+  it('should execute immediately on first call', () => {
+    vi.useFakeTimers();
+    const result = { counter: 0, firstCallTime: 0 };
+    const handler = throttle(() => {
+      result.counter++;
+      result.firstCallTime = Date.now();
+    }, 100);
+
+    const event = new Event('resize');
+    const startTime = Date.now();
+
+    handler(event);
+
+    expect(result.counter).toBe(1);
+    expect(result.firstCallTime).toBe(startTime);
+
+    vi.useRealTimers();
+  });
+
+  it('should preserve this context in throttled function', () => {
+    vi.useFakeTimers();
+    const context = { value: 99, result: 0 };
+    const handler = throttle(function (this: typeof context) {
+      this.result = this.value;
+    }, 100);
+
+    const event = new Event('test');
+    handler.call(context, event);
+
+    expect(context.result).toBe(99);
+
+    vi.useRealTimers();
+  });
+
+  it('should allow execution after interval passes', () => {
+    vi.useFakeTimers();
+    const result = { counter: 0 };
+    const handler = throttle(() => {
+      result.counter++;
+    }, 100);
+
+    const event = new Event('mousemove');
+
+    handler(event);
+    expect(result.counter).toBe(1);
+
+    vi.advanceTimersByTime(50);
+    handler(event);
+    expect(result.counter).toBe(1);
+
+    vi.advanceTimersByTime(50);
+    handler(event);
+    expect(result.counter).toBe(2);
+
+    vi.advanceTimersByTime(100);
+    handler(event);
+    expect(result.counter).toBe(3);
+
+    vi.useRealTimers();
   });
 });
