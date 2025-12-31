@@ -21,9 +21,43 @@ This library is under active development and may introduce breaking changes freq
 
 ## Installation
 
+### Via npm
+
 ```shell
 npm i @knowledgecode/delegate
 ```
+
+### Via CDN (ES Modules)
+
+For modern browsers with ES modules support, you can import directly from a CDN:
+
+#### jsDelivr
+
+```html
+<script type="module">
+  import { delegate } from 'https://cdn.jsdelivr.net/npm/@knowledgecode/delegate/+esm';
+
+  delegate(document)
+    .on('click', '.button', () => {
+      alert('Clicked!');
+    });
+</script>
+```
+
+#### unpkg
+
+```html
+<script type="module">
+  import { delegate } from 'https://unpkg.com/@knowledgecode/delegate?module';
+
+  delegate(document)
+    .on('click', '.button', () => {
+      alert('Clicked!');
+    });
+</script>
+```
+
+**Note**: CDN imports work in modern browsers that support ES modules. For older browsers, please use the npm package with a bundler.
 
 ## Usage
 
@@ -38,13 +72,13 @@ delegate(document)
 
 ## delegate
 
-### `delegate(baseEventTarget)`
+### `delegate(baseTarget)`
 
 Creates or retrieves a delegate instance for the specified event target.
 
-- baseEventTarget
-  - type: `EventTarget`
-  - The base event target to attach event listeners to
+- baseTarget
+  - type: `Window | Document | Element | DocumentFragment`
+  - The base event target for delegation. This is the root element where event listeners are registered using event capture.
 
 ```typescript
 import { delegate } from '@knowledgecode/delegate';
@@ -247,7 +281,7 @@ delegate(document)
 
 ### `nativeEvent`
 
-The native `Event` object of the triggered event.
+The native event object.
 
 ```typescript
 delegate(document)
@@ -262,20 +296,23 @@ delegate(document)
 
 ### `currentTarget`
 
-The `EventTarget` that received the event.
+The current target of the event (i.e., the element where the event listener is attached).
+
+**Note**: This property represents the same target as the `baseTarget` parameter passed to the `delegate()` function. In event delegation, the `baseTarget` is where the event listener is registered, and during event handling, `evt.currentTarget` refers to that same target.
 
 ```typescript
 delegate(document)
   .on('click', '.button', evt => {
+    // evt.currentTarget is the same as the baseTarget (document)
     if (evt.currentTarget === document) {
-      alert('The currentTarget equals to the document.');
+      alert('The currentTarget equals to the baseTarget (document).');
     }
   });
 ```
 
 ### `delegateTarget`
 
-The `EventTarget` to which the event was delegated.
+The delegate target of the event.
 
 ```typescript
 delegate(document)
@@ -288,7 +325,7 @@ delegate(document)
 
 ### `target`
 
-The `EventTarget` where the event actually occurred.
+The original target of the event.
 
 ```typescript
 delegate(document)
@@ -306,47 +343,18 @@ delegate(document)
 
 ### `detail`
 
-Receives the arbitrary object set when dispatching events using `dispatch()` described below.
+The detail data associated with the event.
 
 ```typescript
-import { delegate, dispatch } from '@knowledgecode/delegate';
+import { delegate } from '@knowledgecode/delegate';
 
 delegate(document)
   .on('click', '.button', evt => {
-    evt.stopPropagation();
-    dispatch(document, 'custom:click', evt, 'Clicked!');
-  })
-  .on('custom:click', evt => {
-    alert(evt.detail);  // Clicked!
-  });
-```
-
-## dispatch
-
-### `dispatch(destination, eventName, event[, data])`
-
-Dispatches a custom event to the specified destination.
-
-- destination
-  - type: `EventTarget`
-  - The target to dispatch the event to.
-- eventName
-  - type: `string`
-  - The name of the event to be dispatched.
-- event
-  - type: `Event | DelegateEvent`
-  - The original event or DelegateEvent instance that triggered the dispatch.
-- data
-  - type: `unknown`
-  - Optional data to be included in the event detail.
-
-```typescript
-import { delegate, dispatch } from '@knowledgecode/delegate';
-
-delegate(document)
-  .on('click', '.button', evt => {
-    evt.stopPropagation();
-    dispatch(document, 'custom:click', evt, 'Clicked!');
+    const customEvent = new CustomEvent('custom:click', {
+      bubbles: true,
+      detail: 'Clicked!'
+    });
+    document.dispatchEvent(customEvent);
   })
   .on('custom:click', evt => {
     alert(evt.detail);  // Clicked!
@@ -354,6 +362,38 @@ delegate(document)
 ```
 
 ## Utils
+
+### pierce(destination, ev[, data])
+
+Pierces an event through shadow DOM boundaries by dispatching a custom event to the specified destination. This is primarily used within Web Components to propagate events that don't naturally pierce shadow DOM boundaries.
+
+- destination
+  - type: `HTMLElement`
+  - The target to pierce the event to.
+- ev
+  - type: `Event | DelegateEvent`
+  - The native event or DelegateEvent instance to be pierced.
+- data
+  - type: `unknown`
+  - Optional data to be included in the event detail.
+
+```typescript
+import { pierce } from '@knowledgecode/delegate';
+
+// Inside a Web Component
+class MyComponent extends HTMLElement {
+  connectedCallback() {
+    this.shadowRoot.querySelector('input').addEventListener('change', (evt) => {
+      // Pierce the change event to the Light DOM
+      pierce(this, evt);
+    });
+  }
+}
+```
+
+See the [Using with Web Components](#using-with-web-components) section for more detailed examples.
+
+> **Note**: The `dispatch()` function is deprecated. Please use `pierce()` instead. The `dispatch()` function is still available for backward compatibility but will be removed in a future version.
 
 ### debounce(handler, delay)
 
@@ -405,7 +445,7 @@ This library can also be used with Web Components. Here's an example using it wi
 import { LitElement, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 
-import { delegate, dispatch } from '@knowledgecode/delegate';
+import { delegate, pierce } from '@knowledgecode/delegate';
 
 @customElement('my-component')
 export class MyComponent extends LitElement {
@@ -414,9 +454,9 @@ export class MyComponent extends LitElement {
 
     delegate(this.renderRoot)
       .on('change', '.check', evt => {
-        // Propagate events that don't pierce Shadow DOM boundaries by default
-        // This is not needed for events like click that pierce Shadow DOM boundaries by default
-        dispatch(this, evt.nativeEvent.type, evt);
+        // Pierce events that don't bubble through shadow DOM boundaries by default
+        // This is not needed for events like click that naturally bubble through shadow DOM
+        pierce(this, evt);
       })
   }
 
