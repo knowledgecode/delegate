@@ -25,7 +25,8 @@ export default defineConfig({
   },
   plugins: [
     dts({
-      include: ['src/**/*']
+      include: ['src/**/*'],
+      tsconfigPath: './tsconfig.build.json'
     })
   ],
   resolve: {
