@@ -1,6 +1,6 @@
 {
   "name": "@knowledgecode/delegate",
-  "version": "0.10.6",
+  "version": "0.11.0",
   "description": "Event delegation library with support for Web Components.",
   "keywords": [
     "event",
