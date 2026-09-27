@@ -1,4 +1,4 @@
-import { beforeEach, afterEach } from 'vitest';
+import { beforeEach, afterEach, vi } from 'vitest';
 import './assets/my-box1';
 import './assets/my-box2';
 import type { LitElement } from 'lit';
@@ -31,4 +31,6 @@ beforeEach(async () => {
 
 afterEach(() => {
   delegate(document).clear();
+  delegate(document.body).clear();
+  vi.useRealTimers();
 });
