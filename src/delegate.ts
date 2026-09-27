@@ -171,7 +171,7 @@ export class Delegate {
    * @returns Current delegate instance for chaining.
    */
   off <TEventName extends EventName>(
-    eventName?: EventName,
+    eventName?: TEventName,
     selector?: string,
     handler?: DelegateEventListener<EventType<TEventName>>
   ): Delegate;
@@ -183,7 +183,7 @@ export class Delegate {
    * @returns Current delegate instance for chaining.
    */
   off <TEventName extends EventName>(
-    eventName: EventName,
+    eventName: TEventName,
     handler: DelegateEventListener<EventType<TEventName>>
   ): Delegate;
 
@@ -195,7 +195,7 @@ export class Delegate {
    * @returns Current delegate instance for chaining.
    */
   off <TEventName extends EventName>(
-    eventName?: EventName,
+    eventName?: TEventName,
     arg1?: string | DelegateEventListener<EventType<TEventName>>,
     arg2?: DelegateEventListener<EventType<TEventName>>
   ) {
