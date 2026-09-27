@@ -2,6 +2,27 @@ import { DelegateEvent } from './event.ts';
 import type { DetailObject } from './event.ts';
 
 /**
+ * Dispatches a bubbling, composed CustomEvent whose detail carries the source event, its target, and data.
+ * @param destination - The target to dispatch the event to.
+ * @param eventName - The name of the event to be dispatched.
+ * @param ev - The native event or DelegateEvent instance to be forwarded.
+ * @param data - Data to be included in the event detail.
+ */
+const redispatch = (destination: EventTarget, eventName: string, ev: Event | DelegateEvent, data: unknown) => {
+  destination.dispatchEvent(new CustomEvent<DetailObject>(eventName, {
+    bubbles: true,
+    composed: true,
+    detail: {
+      nativeEvent: ev instanceof DelegateEvent ? ev.nativeEvent : ev,
+      // A DelegateEvent keeps the target it captured during dispatch; a native event's target is retargeted,
+      // and becomes null after dispatch when it lies in a shadow tree.
+      target: ev.target,
+      data
+    }
+  }));
+};
+
+/**
  * @deprecated Use `pierce` instead.
  * Dispatches a custom event to the specified destination.
  * @param destination - The target to dispatch the event to.
@@ -15,17 +36,7 @@ export const dispatch = (
   ev: Event | DelegateEvent,
   data?: unknown
 ) => {
-  const nativeEvent = ev instanceof DelegateEvent ? ev.nativeEvent : ev;
-
-  destination.dispatchEvent(new CustomEvent<DetailObject>(eventName, {
-    bubbles: true,
-    composed: true,
-    detail: {
-      nativeEvent,
-      target: nativeEvent.target,
-      data
-    }
-  }));
+  redispatch(destination, eventName, ev, data);
 };
 
 /**
@@ -39,18 +50,7 @@ export const pierce = (
   ev: Event | DelegateEvent,
   data?: unknown
 ) => {
-  const nativeEvent = ev instanceof DelegateEvent ? ev.nativeEvent : ev;
-  const eventName = nativeEvent.type;
-
-  destination.dispatchEvent(new CustomEvent<DetailObject>(eventName, {
-    bubbles: true,
-    composed: true,
-    detail: {
-      nativeEvent,
-      target: nativeEvent.target,
-      data
-    }
-  }));
+  redispatch(destination, ev instanceof DelegateEvent ? ev.nativeEvent.type : ev.type, ev, data);
 };
 
 /**

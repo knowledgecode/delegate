@@ -103,8 +103,9 @@ export class Delegate {
     if (error) {
       throw new SyntaxError(error);
     }
-    if (handler && subsc.findIndex(s => compareSelectors(s.selectors, selectors) && s.handler === handler) < 0) {
-      subsc.push({ selectors, handler: handler as DelegateEventListener });
+    if (handler && !subsc.some(s => compareSelectors(s.selectors, selectors) && s.handler === handler)) {
+      // Replace the array rather than mutate it: a dispatch in progress keeps iterating the previous one.
+      this.subscriberCache.set(eventName, [...subsc, { selectors, handler: handler as DelegateEventListener }]);
       if (!this.listenerCache.has(eventName)) {
         const [eventName2, passive] = eventName.split(':');
         const listener2 = this.listener.bind(this, passive === 'passive');
@@ -115,7 +116,6 @@ export class Delegate {
         );
       }
     }
-    this.subscriberCache.set(eventName, subsc);
     return this;
   }
 

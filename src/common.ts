@@ -26,8 +26,10 @@ const matches = (target: Element, selectors: string[]) => {
 
         if (root instanceof ShadowRoot) {
           current = root.host;
+        } else if (current.closest(selector)) {
+          break;
         } else {
-          return !!current.closest(selector);
+          return false;
         }
       } while (!current.closest(selector));
     }
@@ -36,16 +38,18 @@ const matches = (target: Element, selectors: string[]) => {
 };
 
 /**
- * Gets the parent node of the target element.
- * @param target - The target element to get the parent node of.
- * @returns The parent node of the target element, or null if no parent exists.
+ * Gets the next event target up the tree.
+ * @param target - The event target to get the parent of.
+ * @returns The host of a shadow root, the window of a document, the parent of an element or document fragment, or null if none exists.
  */
 const getParentNode = (target: EventTarget) => {
-  return target instanceof Element || target instanceof DocumentFragment
-    ? target.parentNode
-    : target instanceof Document
-      ? window
-      : null;
+  return target instanceof ShadowRoot
+    ? target.host
+    : target instanceof Element || target instanceof DocumentFragment
+      ? target.parentNode
+      : target instanceof Document
+        ? window
+        : null;
 };
 
 /**
@@ -74,25 +78,17 @@ export const handleEvent = (ev: Event, target: EventTarget, baseTarget: EventTar
     if (delegateEvent.abort) {
       break;
     }
-    // If there are no selectors, it's a direct event listener on the baseTarget.
-    if (!subscriber.selectors) {
-      // If the target is the baseTarget, invoke the handler.
-      if (target === baseTarget) {
+    // At the baseTarget only handlers without selectors run, and no subscriber is kept, so traversal ends there.
+    if (target === baseTarget) {
+      if (!subscriber.selectors) {
         subscriber.handler.call(target, delegateEvent);
-        continue;
       }
-      // Otherwise, keep the subscriber for further processing.
-      subsc.push(subscriber);
-      continue;
-    }
-    // If selectors are present, check if the target matches the selectors.
-    if (target instanceof Element && matches(target, subscriber.selectors)) {
-      // If it matches, invoke the handler.
+    } else if (subscriber.selectors && target instanceof Element && matches(target, subscriber.selectors)) {
       subscriber.handler.call(target, delegateEvent);
-      continue;
+    } else {
+      // Keep the subscriber for the ancestors.
+      subsc.push(subscriber);
     }
-    // If it doesn't match, keep the subscriber for further processing.
-    subsc.push(subscriber);
   }
 
   // If propagation is not stopped and there are remaining subscribers, continue up the DOM tree.
