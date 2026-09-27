@@ -92,6 +92,8 @@ if (doc1 === doc2) {
 }
 ```
 
+> **Note**: Create instances with `delegate()` rather than `new Delegate()`. An instance created with `new Delegate()` is not registered in the internal cache, yet its `clear()` still removes the cached instance for the same target, leaving that instance's handlers unreachable through `delegate()`.
+
 ### `on(eventName, selector, handler)`
 
 Adds an event listener to the specified event with optional selector for delegation.
@@ -205,6 +207,8 @@ delegate(document.body).off('click');
 // To remove all events:
 delegate(document.body).off();
 ```
+
+> **Note**: Removing a handler with `off()` while an event is being dispatched does not affect that dispatch. The removed handler can still be called for the current event; the removal takes effect from the next event.
 
 ### `clear()`
 
