@@ -48,7 +48,7 @@ For modern browsers with ES modules support, you can import directly from a CDN:
 
 ```html
 <script type="module">
-  import { delegate } from 'https://unpkg.com/@knowledgecode/delegate?module';
+  import { delegate } from 'https://unpkg.com/@knowledgecode/delegate';
 
   delegate(document)
     .on('click', '.button', () => {
@@ -508,7 +508,7 @@ You can define passive event handlers by adding `:passive` to the `eventName`:
 ```typescript
 delegate(document)
   .on('touchstart:passive', '.touch-area', evt => {
-    // Error (passive event handlers cannot prevent this event)
+    // Ignored: a passive listener cannot cancel the event, so the browser only logs a warning
     evt.preventDefault();
   });
 ```
