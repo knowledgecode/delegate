@@ -1,5 +1,5 @@
 import { DelegateEvent } from './event.ts';
-import { getTarget, handleEvent, parseSelector, validateSelectors, compareSelectors } from './common.ts';
+import { getTarget, handleEvent, parseEventName, parseSelector, validateSelectors, compareSelectors } from './common.ts';
 import type { DelegateEventListener, Subscriber } from './common.ts';
 
 export { DelegateEvent } from './event.ts';
@@ -23,6 +23,8 @@ type EventType<K extends EventName> =
         : Event;
 
 const delegatorCache = new WeakMap<Target, Delegate>();
+
+const onceHandlers = new WeakMap<DelegateEventListener, DelegateEventListener | undefined>();
 
 export class Delegate {
   private readonly baseTarget: Target;
@@ -103,19 +105,17 @@ export class Delegate {
     if (error) {
       throw new SyntaxError(error);
     }
-    if (handler && subsc.findIndex(s => compareSelectors(s.selectors, selectors) && s.handler === handler) < 0) {
-      subsc.push({ selectors, handler: handler as DelegateEventListener });
+    if (handler && !subsc.some(s => compareSelectors(s.selectors, selectors) && s.handler === handler)) {
+      // Replace the array rather than mutate it: a dispatch in progress keeps iterating the previous one.
+      this.subscriberCache.set(eventName, [...subsc, { selectors, handler: handler as DelegateEventListener }]);
       if (!this.listenerCache.has(eventName)) {
-        const [eventName2, passive] = eventName.split(':');
-        const listener2 = this.listener.bind(this, passive === 'passive');
+        const [type, passive] = parseEventName(eventName);
+        const listener2 = this.listener.bind(this, passive);
 
         this.listenerCache.set(eventName, listener2);
-        this.baseTarget.addEventListener(
-          passive === 'passive' ? eventName2 : eventName, listener2, { capture: true, passive: passive === 'passive' }
-        );
+        this.baseTarget.addEventListener(type, listener2, { capture: true, passive });
       }
     }
-    this.subscriberCache.set(eventName, subsc);
     return this;
   }
 
@@ -159,9 +159,10 @@ export class Delegate {
     const handler = typeof arg1 === 'function' ? arg1 : arg2;
     const handler2 = (ev: DelegateEvent<EventType<TEventName>>) => {
       this.off(eventName, selector, handler2);
-      handler?.call(ev.target, ev);
+      handler?.call(ev.delegateTarget, ev);
     };
 
+    onceHandlers.set(handler2 as DelegateEventListener, handler as DelegateEventListener | undefined);
     return this.on(eventName, selector, handler2);
   }
 
@@ -173,7 +174,7 @@ export class Delegate {
    * @returns Current delegate instance for chaining.
    */
   off <TEventName extends EventName>(
-    eventName?: EventName,
+    eventName?: TEventName,
     selector?: string,
     handler?: DelegateEventListener<EventType<TEventName>>
   ): Delegate;
@@ -185,7 +186,7 @@ export class Delegate {
    * @returns Current delegate instance for chaining.
    */
   off <TEventName extends EventName>(
-    eventName: EventName,
+    eventName: TEventName,
     handler: DelegateEventListener<EventType<TEventName>>
   ): Delegate;
 
@@ -197,7 +198,7 @@ export class Delegate {
    * @returns Current delegate instance for chaining.
    */
   off <TEventName extends EventName>(
-    eventName?: EventName,
+    eventName?: TEventName,
     arg1?: string | DelegateEventListener<EventType<TEventName>>,
     arg2?: DelegateEventListener<EventType<TEventName>>
   ) {
@@ -210,11 +211,7 @@ export class Delegate {
      * @param _eventName - The event name to remove the listener from.
      */
     const removeEventListener = (_listener: EventListener, _eventName: EventName) => {
-      const [eventName2, passive] = _eventName.split(':');
-
-      this.baseTarget.removeEventListener(
-        passive === 'passive' ? eventName2 : _eventName, _listener, { capture: true }
-      );
+      this.baseTarget.removeEventListener(parseEventName(_eventName)[0], _listener, { capture: true });
     };
 
     if (eventName) {
@@ -230,9 +227,9 @@ export class Delegate {
       for (const subscriber of this.subscriberCache.get(eventName) ?? []) {
         // Keep subscriber if it doesn't match the removal criteria:
         // - If selector is specified and doesn't match
-        // - If handler is specified and doesn't match
+        // - If handler is specified and matches neither the subscriber's handler nor the one it wraps via one()
         if (selector !== undefined && !compareSelectors(subscriber.selectors, selectors)
-          || handler && handler !== subscriber.handler) {
+          || handler && handler !== subscriber.handler && handler !== onceHandlers.get(subscriber.handler)) {
           subsc.push(subscriber);
         }
       }

@@ -48,7 +48,7 @@ For modern browsers with ES modules support, you can import directly from a CDN:
 
 ```html
 <script type="module">
-  import { delegate } from 'https://unpkg.com/@knowledgecode/delegate?module';
+  import { delegate } from 'https://unpkg.com/@knowledgecode/delegate';
 
   delegate(document)
     .on('click', '.button', () => {
@@ -91,6 +91,8 @@ if (doc1 === doc2) {
   alert('doc1 and doc2 are the same instance');
 }
 ```
+
+> **Note**: Create instances with `delegate()` rather than `new Delegate()`. An instance created with `new Delegate()` is not registered in the internal cache, yet its `clear()` still removes the cached instance for the same target, leaving that instance's handlers unreachable through `delegate()`.
 
 ### `on(eventName, selector, handler)`
 
@@ -205,6 +207,8 @@ delegate(document.body).off('click');
 // To remove all events:
 delegate(document.body).off();
 ```
+
+> **Note**: Removing a handler with `off()` while an event is being dispatched does not affect that dispatch. The removed handler can still be called for the current event; the removal takes effect from the next event.
 
 ### `clear()`
 
@@ -508,7 +512,7 @@ You can define passive event handlers by adding `:passive` to the `eventName`:
 ```typescript
 delegate(document)
   .on('touchstart:passive', '.touch-area', evt => {
-    // Error (passive event handlers cannot prevent this event)
+    // Ignored: a passive listener cannot cancel the event, so the browser only logs a warning
     evt.preventDefault();
   });
 ```

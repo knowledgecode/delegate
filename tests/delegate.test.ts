@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { delegate, DelegateEvent, debounce, throttle, pierce } from '@/index.ts';
+import type { DelegateEventListener } from '@/index.ts';
 
 describe('delegate', () => {
   it('should handle click events with selector', async () => {
@@ -51,6 +52,31 @@ describe('delegate', () => {
     div1?.click();
 
     expect(result.counter).toBe(1);
+  });
+
+  it('should call a one-time listener with the matched element as this', () => {
+    const contexts: unknown[] = [];
+    const div1 = document.querySelector<HTMLElement>('.div1');
+
+    delegate(document).one('click', '.div1', function (this: unknown) {
+      contexts.push(this);
+    });
+    div1?.querySelector<HTMLInputElement>(':scope > input')?.click();
+
+    expect(contexts).toHaveLength(1);
+    expect(contexts[0]).toBe(div1);
+  });
+
+  it('should remove a one-time listener by its original handler with off', () => {
+    const result = { counter: 0 };
+    const handler: DelegateEventListener<MouseEvent> = () => result.counter++;
+
+    delegate(document)
+      .one('click', '.div1', handler)
+      .off('click', '.div1', handler);
+    document.querySelector<HTMLElement>('.div1')?.click();
+
+    expect(result.counter).toBe(0);
   });
 
   it('should remove specific event handler with off', () => {
@@ -224,6 +250,20 @@ describe('delegate', () => {
     document.querySelector<HTMLElement>('.div1')?.dispatchEvent(touchEvent);
 
     expect(result.counter).toBe(1);
+  });
+
+  it('should handle passive listeners for an event name containing a colon', () => {
+    const result = { counter: 0 };
+    const event = new CustomEvent('my:event', { bubbles: true, cancelable: true });
+
+    delegate(document).on('my:event:passive', '.div1', evt => {
+      result.counter++;
+      evt.preventDefault();
+    });
+    document.querySelector<HTMLElement>('.div1')?.dispatchEvent(event);
+
+    expect(result.counter).toBe(1);
+    expect(event.defaultPrevented).toBe(false);
   });
 
   it('should throw TypeError for invalid baseTarget', () => {
@@ -558,5 +598,187 @@ describe('throttle', () => {
     expect(result.counter).toBe(3);
 
     vi.useRealTimers();
+  });
+});
+
+describe('event traversal', () => {
+  const box1Root = () => document.querySelector<HTMLElement>('.box1')?.shadowRoot;
+  const box1Button = () => box1Root()?.querySelector<HTMLButtonElement>('button');
+
+  it('should match a descendant of an element base', () => {
+    const result = { counter: 0 };
+    const div1 = document.querySelector<HTMLElement>('.div1');
+
+    if (!div1) {
+      throw new Error('Element not available');
+    }
+
+    delegate(div1).on('click', 'input', () => result.counter++);
+    div1.querySelector<HTMLInputElement>(':scope > input')?.click();
+
+    expect(result.counter).toBe(1);
+  });
+
+  it('should not match outside a shadow root base', () => {
+    const result = { counter: 0 };
+    const root = box1Root();
+
+    if (!root) {
+      throw new Error('Element not available');
+    }
+
+    delegate(root).on('click', '.div1', () => result.counter++);
+    box1Button()?.click();
+
+    expect(result.counter).toBe(0);
+  });
+
+  it('should call a no-selector handler on a shadow root base', () => {
+    const result = { counter: 0 };
+    const root = box1Root();
+
+    if (!root) {
+      throw new Error('Element not available');
+    }
+
+    delegate(root).on('click', () => result.counter++);
+    box1Button()?.click();
+
+    expect(result.counter).toBe(1);
+  });
+
+  it('should remove a handler by a >> selector with off', () => {
+    const result = { counter: 0 };
+
+    delegate(document)
+      .on('click', '.box1 >> button', () => result.counter++)
+      .off('click', '.box1 >> button');
+    box1Button()?.click();
+
+    expect(result.counter).toBe(0);
+  });
+
+  it('should reach a light DOM ancestor selector from inside a shadow tree', () => {
+    const result = { counter: 0 };
+
+    delegate(document).on('click', '.div1', () => result.counter++);
+    box1Button()?.click();
+
+    expect(result.counter).toBe(1);
+  });
+
+  it('should match the shadow host selector from inside its shadow tree', () => {
+    const result = { counter: 0 };
+
+    delegate(document).on('click', '.box1', () => result.counter++);
+    box1Button()?.click();
+
+    expect(result.counter).toBe(1);
+  });
+
+  it('should call a no-selector handler on document for clicks inside a shadow tree', () => {
+    const result = { counter: 0 };
+
+    delegate(document).on('click', () => result.counter++);
+    box1Button()?.click();
+
+    expect(result.counter).toBe(1);
+  });
+
+  it('should call a no-selector handler on body for clicks inside a shadow tree', () => {
+    const result = { counter: 0 };
+
+    delegate(document.body).on('click', () => result.counter++);
+    box1Button()?.click();
+
+    expect(result.counter).toBe(1);
+  });
+
+  it('should not match an ancestor outside an element base', () => {
+    const result = { counter: 0 };
+    const div1 = document.querySelector<HTMLElement>('.div1');
+
+    if (!div1) {
+      throw new Error('Element not available');
+    }
+
+    delegate(div1).on('click', '.div2', () => result.counter++);
+    div1.querySelector<HTMLInputElement>(':scope > input')?.click();
+
+    expect(result.counter).toBe(0);
+  });
+
+  it('should not match the element base itself', () => {
+    const result = { counter: 0 };
+    const div1 = document.querySelector<HTMLElement>('.div1');
+
+    if (!div1) {
+      throw new Error('Element not available');
+    }
+
+    delegate(div1).on('click', '.div1', () => result.counter++);
+    div1.querySelector<HTMLInputElement>(':scope > input')?.click();
+
+    expect(result.counter).toBe(0);
+  });
+
+  it('should require every selector of a >> chain in the light DOM', () => {
+    const result = { counter: 0 };
+
+    delegate(document).on('click', '.nonexistent >> .div1 >> input', () => result.counter++);
+    document.querySelector<HTMLInputElement>('.div1 > input')?.click();
+
+    expect(result.counter).toBe(0);
+  });
+
+  it('should not call a handler added during the same dispatch', () => {
+    const result = { counter: 0 };
+    const handler = () => result.counter++;
+    const div1 = document.querySelector<HTMLElement>('.div1');
+
+    delegate(document).on('click', '.div1', () => {
+      delegate(document).on('click', '.div2', handler);
+    });
+    div1?.click();
+    expect(result.counter).toBe(0);
+
+    div1?.click();
+    expect(result.counter).toBe(1);
+  });
+
+  it('should pierce an event after its dispatch has finished', () => {
+    vi.useFakeTimers();
+    const result = { counter: 0 };
+    const box1 = document.querySelector<HTMLElement>('.box1');
+    const root = box1Root();
+
+    if (!box1 || !root) {
+      throw new Error('Element not available');
+    }
+
+    delegate(root).on('change', '.check1', debounce((evt: DelegateEvent) => {
+      pierce(box1, evt);
+    }, 100));
+    delegate(document).on('change', '.box1 >> .check1', () => result.counter++);
+    root.querySelector<HTMLInputElement>('.check1')?.click();
+    vi.advanceTimersByTime(100);
+
+    expect(result.counter).toBe(1);
+
+    vi.useRealTimers();
+  });
+
+  it('should reach a selector from a text node target', () => {
+    const result = { counter: 0 };
+    const text = document.querySelector<HTMLElement>('.div1')?.firstChild;
+
+    if (!(text instanceof Text)) {
+      throw new Error('Element not available');
+    }
+
+    delegate(document).on('click', '.div1', () => result.counter++);
+    text.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(result.counter).toBe(1);
   });
 });
