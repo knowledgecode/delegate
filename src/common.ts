@@ -40,15 +40,15 @@ const matches = (target: Element, selectors: string[]) => {
 /**
  * Gets the next event target up the tree.
  * @param target - The event target to get the parent of.
- * @returns The host of a shadow root, the window of a document, the parent of an element or document fragment, or null if none exists.
+ * @returns The host of a shadow root, the window of a document, the parent of any other node, or null if none exists.
  */
 const getParentNode = (target: EventTarget) => {
   return target instanceof ShadowRoot
     ? target.host
-    : target instanceof Element || target instanceof DocumentFragment
-      ? target.parentNode
-      : target instanceof Document
-        ? window
+    : target instanceof Document
+      ? window
+      : target instanceof Node
+        ? target.parentNode
         : null;
 };
 

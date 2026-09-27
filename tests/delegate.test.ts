@@ -767,4 +767,18 @@ describe('event traversal', () => {
 
     vi.useRealTimers();
   });
+
+  it('should reach a selector from a text node target', () => {
+    const result = { counter: 0 };
+    const text = document.querySelector<HTMLElement>('.div1')?.firstChild;
+
+    if (!(text instanceof Text)) {
+      throw new Error('Element not available');
+    }
+
+    delegate(document).on('click', '.div1', () => result.counter++);
+    text.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(result.counter).toBe(1);
+  });
 });
