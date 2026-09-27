@@ -157,7 +157,7 @@ export class Delegate {
     const handler = typeof arg1 === 'function' ? arg1 : arg2;
     const handler2 = (ev: DelegateEvent<EventType<TEventName>>) => {
       this.off(eventName, selector, handler2);
-      handler?.call(ev.target, ev);
+      handler?.call(ev.delegateTarget, ev);
     };
 
     return this.on(eventName, selector, handler2);

@@ -53,6 +53,19 @@ describe('delegate', () => {
     expect(result.counter).toBe(1);
   });
 
+  it('should call a one-time listener with the matched element as this', () => {
+    const contexts: unknown[] = [];
+    const div1 = document.querySelector<HTMLElement>('.div1');
+
+    delegate(document).one('click', '.div1', function (this: unknown) {
+      contexts.push(this);
+    });
+    div1?.querySelector<HTMLInputElement>(':scope > input')?.click();
+
+    expect(contexts).toHaveLength(1);
+    expect(contexts[0]).toBe(div1);
+  });
+
   it('should remove specific event handler with off', () => {
     const result = { counter: 0 };
     const handler1 = () => result.counter++;
