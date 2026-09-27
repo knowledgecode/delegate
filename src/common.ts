@@ -111,6 +111,17 @@ export const parseSelector = (selector: string) => {
 };
 
 /**
+ * Splits an event name into the native event type and whether it has the ':passive' suffix.
+ * @param eventName - An event name that may end with ':passive'.
+ * @returns A tuple of the native event type and the passive flag.
+ */
+export const parseEventName = (eventName: string) => {
+  const passive = eventName.endsWith(':passive');
+
+  return [passive ? eventName.slice(0, -':passive'.length) : eventName, passive] as const;
+};
+
+/**
  * Validates the provided CSS selectors.
  * @param selectors - An array of CSS selector strings to validate.
  * @returns An error message if any selector is invalid, otherwise undefined.

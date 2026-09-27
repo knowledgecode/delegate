@@ -1,5 +1,5 @@
 import { DelegateEvent } from './event.ts';
-import { getTarget, handleEvent, parseSelector, validateSelectors, compareSelectors } from './common.ts';
+import { getTarget, handleEvent, parseEventName, parseSelector, validateSelectors, compareSelectors } from './common.ts';
 import type { DelegateEventListener, Subscriber } from './common.ts';
 
 export { DelegateEvent } from './event.ts';
@@ -107,13 +107,11 @@ export class Delegate {
       // Replace the array rather than mutate it: a dispatch in progress keeps iterating the previous one.
       this.subscriberCache.set(eventName, [...subsc, { selectors, handler: handler as DelegateEventListener }]);
       if (!this.listenerCache.has(eventName)) {
-        const [eventName2, passive] = eventName.split(':');
-        const listener2 = this.listener.bind(this, passive === 'passive');
+        const [type, passive] = parseEventName(eventName);
+        const listener2 = this.listener.bind(this, passive);
 
         this.listenerCache.set(eventName, listener2);
-        this.baseTarget.addEventListener(
-          passive === 'passive' ? eventName2 : eventName, listener2, { capture: true, passive: passive === 'passive' }
-        );
+        this.baseTarget.addEventListener(type, listener2, { capture: true, passive });
       }
     }
     return this;
@@ -210,11 +208,7 @@ export class Delegate {
      * @param _eventName - The event name to remove the listener from.
      */
     const removeEventListener = (_listener: EventListener, _eventName: EventName) => {
-      const [eventName2, passive] = _eventName.split(':');
-
-      this.baseTarget.removeEventListener(
-        passive === 'passive' ? eventName2 : _eventName, _listener, { capture: true }
-      );
+      this.baseTarget.removeEventListener(parseEventName(_eventName)[0], _listener, { capture: true });
     };
 
     if (eventName) {

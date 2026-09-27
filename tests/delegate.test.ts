@@ -226,6 +226,20 @@ describe('delegate', () => {
     expect(result.counter).toBe(1);
   });
 
+  it('should handle passive listeners for an event name containing a colon', () => {
+    const result = { counter: 0 };
+    const event = new CustomEvent('my:event', { bubbles: true, cancelable: true });
+
+    delegate(document).on('my:event:passive', '.div1', evt => {
+      result.counter++;
+      evt.preventDefault();
+    });
+    document.querySelector<HTMLElement>('.div1')?.dispatchEvent(event);
+
+    expect(result.counter).toBe(1);
+    expect(event.defaultPrevented).toBe(false);
+  });
+
   it('should throw TypeError for invalid baseTarget', () => {
     expect(() => {
       // @ts-expect-error Testing invalid input
