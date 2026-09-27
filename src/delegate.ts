@@ -24,6 +24,8 @@ type EventType<K extends EventName> =
 
 const delegatorCache = new WeakMap<Target, Delegate>();
 
+const onceHandlers = new WeakMap<DelegateEventListener, DelegateEventListener | undefined>();
+
 export class Delegate {
   private readonly baseTarget: Target;
 
@@ -160,6 +162,7 @@ export class Delegate {
       handler?.call(ev.delegateTarget, ev);
     };
 
+    onceHandlers.set(handler2 as DelegateEventListener, handler as DelegateEventListener | undefined);
     return this.on(eventName, selector, handler2);
   }
 
@@ -224,9 +227,9 @@ export class Delegate {
       for (const subscriber of this.subscriberCache.get(eventName) ?? []) {
         // Keep subscriber if it doesn't match the removal criteria:
         // - If selector is specified and doesn't match
-        // - If handler is specified and doesn't match
+        // - If handler is specified and matches neither the subscriber's handler nor the one it wraps via one()
         if (selector !== undefined && !compareSelectors(subscriber.selectors, selectors)
-          || handler && handler !== subscriber.handler) {
+          || handler && handler !== subscriber.handler && handler !== onceHandlers.get(subscriber.handler)) {
           subsc.push(subscriber);
         }
       }

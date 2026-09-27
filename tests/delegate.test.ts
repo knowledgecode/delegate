@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { delegate, DelegateEvent, debounce, throttle, pierce } from '@/index.ts';
+import type { DelegateEventListener } from '@/index.ts';
 
 describe('delegate', () => {
   it('should handle click events with selector', async () => {
@@ -64,6 +65,18 @@ describe('delegate', () => {
 
     expect(contexts).toHaveLength(1);
     expect(contexts[0]).toBe(div1);
+  });
+
+  it('should remove a one-time listener by its original handler with off', () => {
+    const result = { counter: 0 };
+    const handler: DelegateEventListener<MouseEvent> = () => result.counter++;
+
+    delegate(document)
+      .one('click', '.div1', handler)
+      .off('click', '.div1', handler);
+    document.querySelector<HTMLElement>('.div1')?.click();
+
+    expect(result.counter).toBe(0);
   });
 
   it('should remove specific event handler with off', () => {
